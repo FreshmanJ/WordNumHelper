@@ -35,7 +35,7 @@ const TRANSLATIONS = {
     metric1Label: "01 上传文档",
     metric1Value: "导入一个 `.docx` 文件",
     metric2Label: "02 设置规则",
-    metric2Value: "区分匹配正则与重编号占位符",
+    metric2Value: "组合正则片段、`{t数字}` 与 `{n}`",
     metric3Label: "03 导出结果",
     metric3Value: "预览映射后下载修正文档",
     step1Eyebrow: "Step 1",
@@ -49,8 +49,8 @@ const TRANSLATIONS = {
     step2Title: "设置图表标注规则",
     regexHelpButtonText: "规则说明",
     addRuleButtonText: "新增规则",
-    rulesDescriptionPrimary: "每条规则分成两部分：左侧“匹配规则”用正则表达式定位旧图表标注，右侧“重编号规则”用普通文本加占位符生成新标注。",
-    rulesDescriptionSecondary: "匹配规则里需要被改写的数字请用捕获组 <code>(...)</code> 包起来；占位符会默认从右往左对应这些捕获组，所以左侧多出来的前导捕获组只用于匹配也没问题。例如 <code>图(\\d+)-(\\d+)</code> 搭配 <code>图5-{n}</code> 时，会保留最后一个捕获组给 <code>{n}</code>，把所有图号重排成第五章。",
+    rulesDescriptionPrimary: "规则里只有大括号占位符会参与自动重排：<code>{n}</code> 表示递增编号，<code>{t数字}</code> 表示按对应级别标题自动编号，比如 <code>{t1}</code>、<code>{t2}</code>、<code>{t3}</code>；其它部分按正则匹配，但不会被改动。",
+    rulesDescriptionSecondary: "例如 <code>图{t1}-{n}</code> 会把图号前半段按当前一级标题自动改写；如果写成 <code>图{t3}-{n}</code>，就会按三级标题自动编号，并让该范围内的 <code>{n}</code> 从设定起始值重新递增。",
     patternLegendRegex: "正则匹配部分",
     patternLegendRenumber: "{n} 递增编号",
     patternLegendHeading: "{t数字} 标题编号",
@@ -60,16 +60,6 @@ const TRANSLATIONS = {
     headingInferenceLabel: "允许按文本猜测标题级别",
     headingInferenceHint:
       "默认只信任 Word 标题样式或大纲级别。只有旧文档没套用这些设置时再开启，否则可能把 `1.` 或 `1.1` 这类正文误判为标题。",
-    customRangeToggleLabel: "启用自定义范围",
-    customRangeToggleHint:
-      "默认关闭。开启后，只对开始标记和结束标记之间的内容进行识别和编号。",
-    customRangeTitle: "自定义范围",
-    customRangeHint:
-      "分别粘贴两段在正文中只出现一次的内容，作为开始位置和结束位置。输入后不会自动扫描，点击“扫描并预览”时才会校验。",
-    customRangeStartLabel: "开始标记",
-    customRangeEndLabel: "结束标记",
-    customRangeStartPlaceholder: "粘贴一段只出现一次的开始位置内容",
-    customRangeEndPlaceholder: "粘贴一段只出现一次的结束位置内容",
     pageRangeToggleLabel: "按页码范围扫描",
     pageRangeToggleHint:
       "默认关闭。开启后，只识别和编号指定页码范围内的内容。",
@@ -90,9 +80,9 @@ const TRANSLATIONS = {
     recognitionTitle: "如何区分标题与正文引用",
     feature1: "段首且边界更像标题的内容，会优先视为真正的图表标题。",
     feature2: "像“如图3-1所示”这类紧挨正文的内容，会作为正文引用同步更新。",
-    feature3: "重编号规则里的 `{t数字}` 会按对应级别标题顺序生成，`{n}` 会在相同标题作用域内递增；匹配规则中的捕获组顺序需要与这些占位符一一对应。",
+    feature3: "当规则里出现 `{t数字}` 时，会按对应级别标题的出现顺序自动编号，并使用该占位符自己的起始值。",
     resultsEyebrow: "结果",
-    resultsTitle: "识别到的标题与引用",
+    resultsTitle: "识别到的图表编号与引用",
     captionsSummaryLabel: "图表编号",
     referencesSummaryLabel: "同步引用",
     warningsSummaryLabel: "需要留意",
@@ -117,23 +107,18 @@ const TRANSLATIONS = {
     helpEyebrow: "规则说明",
     helpDialogTitle: "图表规则怎么写",
     closeHelpButtonText: "关闭",
-    matchPatternLabel: "匹配规则",
-    renumberPatternLabel: "重编号规则",
-    matchPatternPlaceholder: "例如：图(\\d+)-(\\d+) 或 表(\\d+)",
-    renumberPatternPlaceholder: "例如：图{t1}-{n} 或 表{n}",
+    ruleLabel: "规则",
+    rulePlaceholder: "例如：图{t1}-{n} 或 图{t3}-{n}",
     placeholderStartsLabel: "起始编号",
     placeholderStartT1Label: "{t1}",
     placeholderStartT2Label: "{t2}",
     placeholderStartNLabel: "{n}",
     removeRule: "删除",
     keepOneRule: "至少保留一条规则。",
-    incompleteRuleError: "每条规则都需要同时填写匹配规则和重编号规则。",
-    matchPatternPlaceholderError: "匹配规则“{rule}”里不能使用 {placeholder}，请改用捕获组 (...)。",
-    captureGroupCountError: "匹配规则“{matchPattern}”里至少需要有 {count} 个捕获组，右侧重编号规则“{renumberPattern}”中的占位符会默认从右往左对应这些捕获组。",
-    missingPlaceholderError: "重编号规则“{rule}”必须包含一个 {n}。",
-    duplicatePlaceholderError: "重编号规则“{rule}”里的 {placeholder} 不能重复出现。",
-    unsupportedPlaceholderError: "重编号规则“{rule}”里包含暂不支持的占位符 {placeholder}。",
-    invalidRegexError: "匹配规则“{rule}”不是合法的正则表达式。",
+    missingPlaceholderError: "规则“{rule}”必须包含一个 {n}。",
+    duplicatePlaceholderError: "规则“{rule}”里的 {placeholder} 不能重复出现。",
+    unsupportedPlaceholderError: "规则“{rule}”里包含暂不支持的占位符 {placeholder}。",
+    invalidRegexError: "规则“{rule}”不是合法的正则表达式。",
     waitingUpload: "等待上传文档。",
     chooseDocx: "请选择一个 `.docx` 文件。",
     onlyDocx: "当前版本只支持 `.docx`。如果是旧版 `.doc`，请先在 Word 中另存为 `.docx`。",
@@ -150,7 +135,7 @@ const TRANSLATIONS = {
     noProcessableXmlError: "没有找到可处理的 DOCX 文档内容。",
     missingHeadingWarning: "规则里使用了 {placeholder}，但文档里没有识别到对应级别的标题。",
     placeholderFallbackWarning: "{count} 个标题无法为 {placeholder} 找到对应的标题上下文，已保留原来的这部分数字。",
-    noCaptionFound: "没有识别到真正的图表标题，请检查匹配规则是否与文档格式一致。",
+    noCaptionFound: "没有识别到真正的图表标题，请检查规则是否与文档格式一致。",
     noReferenceFound: "没有需要同步的正文引用。",
     noExtraWarnings: "没有额外提示。",
     duplicateWarning: "旧标号“{text}”出现了多次，正文引用已按“就近且优先向前”的规则同步，建议人工复核。",
@@ -158,10 +143,6 @@ const TRANSLATIONS = {
     emptyReferencesRow: "还没有识别到需要同步的正文引用。",
     emptyParagraph: "(空段落)",
     invalidPageRange: "页码范围无效。请填写大于 0 且不超过文档总页数的页码，并保证起始页不大于结束页。",
-    customRangeMissingMarker: "开启自定义范围后，请同时填写开始标记和结束标记。",
-    customRangeStartNotUnique: "开始标记未唯一匹配，当前检索到 {count} 处。请换一段只出现一次的内容。",
-    customRangeEndNotUnique: "结束标记未唯一匹配，当前检索到 {count} 处。请换一段只出现一次的内容。",
-    customRangeOutOfOrder: "开始标记出现在结束标记之后，请重新设置。",
     pageRangeUnavailable:
       "当前文档缺少可用于定位页面边界的分页标记，无法可靠按页码范围筛选。请先在 Word 中更新分页后再试，或关闭页码范围。",
     pageRangeWarningNoMarkers:
@@ -195,7 +176,7 @@ const TRANSLATIONS = {
     metric1Label: "01 Upload file",
     metric1Value: "Import one `.docx` file",
     metric2Label: "02 Configure rules",
-    metric2Value: "Separate match regex from renumber placeholders",
+    metric2Value: "Combine regex parts with `{tN}` / `{n}`",
     metric3Label: "03 Export result",
     metric3Value: "Preview mappings and download DOCX",
     step1Eyebrow: "Step 1",
@@ -209,8 +190,8 @@ const TRANSLATIONS = {
     step2Title: "Set Caption Rules",
     regexHelpButtonText: "Rule Guide",
     addRuleButtonText: "Add Rule",
-    rulesDescriptionPrimary: "Each rule now has two fields: the left match pattern is regex used to locate the old caption label, and the right renumber pattern uses plain text plus placeholders to build the new label.",
-    rulesDescriptionSecondary: "Wrap old numbers in capturing groups <code>(...)</code>. Placeholders align with capture groups from right to left, so any extra leading capture groups are treated as match-only. For example, <code>Fig\\.(\\d+)-(\\d+)</code> with <code>Fig\\.5-{n}</code> keeps only the last capture group for <code>{n}</code> and renumbers everything into chapter 5.",
+    rulesDescriptionPrimary: "Only brace placeholders participate in renumbering: <code>{n}</code> is the incrementing number, and <code>{tN}</code> maps to the heading index of that level, such as <code>{t1}</code>, <code>{t2}</code>, or <code>{t3}</code>. Everything else is regex matching only.",
+    rulesDescriptionSecondary: "For example, <code>Fig\\.{t1}-{n}</code> rewrites the chapter part from the current level-1 heading. If you use <code>{t3}</code>, the value comes from the current level-3 heading and <code>{n}</code> restarts inside that scope.",
     patternLegendRegex: "Regex matching part",
     patternLegendRenumber: "{n} incrementing number",
     patternLegendHeading: "{tN} heading index",
@@ -220,16 +201,6 @@ const TRANSLATIONS = {
     headingInferenceLabel: "Allow text-based heading inference",
     headingInferenceHint:
       "Off by default. Turn this on only for older documents that do not use real Word heading styles or outline levels, because plain text like `1.` or `1.1` may be misread as headings.",
-    customRangeToggleLabel: "Enable custom range",
-    customRangeToggleHint:
-      "Off by default. When enabled, only content between the start marker and end marker is detected and renumbered.",
-    customRangeTitle: "Custom range",
-    customRangeHint:
-      "Paste two snippets that each appear only once in the main document body. The app validates them only when you click Scan and Preview.",
-    customRangeStartLabel: "Start marker",
-    customRangeEndLabel: "End marker",
-    customRangeStartPlaceholder: "Paste a unique snippet for the start position",
-    customRangeEndPlaceholder: "Paste a unique snippet for the end position",
     pageRangeToggleLabel: "Limit by page range",
     pageRangeToggleHint:
       "Off by default. Turn it on to detect and renumber only inside the selected pages.",
@@ -250,7 +221,7 @@ const TRANSLATIONS = {
     recognitionTitle: "How captions and references differ",
     feature1: "Paragraph-start content with caption-like boundaries is treated as a real caption first.",
     feature2: "Inline text such as “as shown in Fig.3-1” is treated as an in-text reference and updated afterward.",
-    feature3: "The renumber pattern can use `{tN}` from heading order and `{n}` as the counter, while the match pattern must capture the old number parts in the same order.",
+    feature3: "When a rule contains `{tN}`, heading numbers are generated from heading order at that level and each placeholder uses its own configurable start value.",
     resultsEyebrow: "Results",
     resultsTitle: "Detected Captions and References",
     captionsSummaryLabel: "Real captions",
@@ -277,23 +248,18 @@ const TRANSLATIONS = {
     helpEyebrow: "Rule Guide",
     helpDialogTitle: "How to write caption rules",
     closeHelpButtonText: "Close",
-    matchPatternLabel: "Match pattern",
-    renumberPatternLabel: "Renumber pattern",
-    matchPatternPlaceholder: "Example: Fig\\.(\\d+)-(\\d+) or Table(\\d+)",
-    renumberPatternPlaceholder: "Example: Fig\\.{t1}-{n} or Table{n}",
+    ruleLabel: "Rule",
+    rulePlaceholder: "Example: Fig\\.{t1}-{n} or Fig\\.{t3}-{n}",
     placeholderStartsLabel: "Start numbers",
     placeholderStartT1Label: "{t1}",
     placeholderStartT2Label: "{t2}",
     placeholderStartNLabel: "{n}",
     removeRule: "Remove",
     keepOneRule: "Keep at least one rule.",
-    incompleteRuleError: "Each rule needs both a match pattern and a renumber pattern.",
-    matchPatternPlaceholderError: "Match pattern \"{rule}\" cannot use {placeholder}. Use capturing groups (...) instead.",
-    captureGroupCountError: "Match pattern \"{matchPattern}\" needs at least {count} capturing groups. Placeholders in renumber pattern \"{renumberPattern}\" align with those groups from right to left.",
-    missingPlaceholderError: "Renumber pattern \"{rule}\" must include one {n}.",
-    duplicatePlaceholderError: "Renumber pattern \"{rule}\" cannot repeat {placeholder}.",
-    unsupportedPlaceholderError: "Renumber pattern \"{rule}\" includes an unsupported placeholder {placeholder}.",
-    invalidRegexError: "Match pattern \"{rule}\" is not a valid regular expression.",
+    missingPlaceholderError: "Rule “{rule}” must include one {n}.",
+    duplicatePlaceholderError: "Rule “{rule}” cannot repeat {placeholder}.",
+    unsupportedPlaceholderError: "Rule “{rule}” includes an unsupported placeholder {placeholder}.",
+    invalidRegexError: "Rule “{rule}” is not a valid regular expression.",
     waitingUpload: "Waiting for a document upload.",
     chooseDocx: "Please choose a `.docx` file.",
     onlyDocx: "This tool supports `.docx` only. Save old `.doc` files as `.docx` first.",
@@ -310,7 +276,7 @@ const TRANSLATIONS = {
     noProcessableXmlError: "No processable DOCX content was found.",
     missingHeadingWarning: "A rule uses {placeholder}, but no matching heading level was detected in the document.",
     placeholderFallbackWarning: "{count} captions could not resolve {placeholder} from heading context, so that part of the original number was kept.",
-    noCaptionFound: "No real captions were detected. Please check whether the match patterns fit the document.",
+    noCaptionFound: "No real captions were detected. Please check whether the rules match the document.",
     noReferenceFound: "No in-text references needed syncing.",
     noExtraWarnings: "No additional notes.",
     duplicateWarning: "Old label “{text}” appears multiple times. References were synced by the nearest previous caption and should be reviewed manually.",
@@ -319,14 +285,6 @@ const TRANSLATIONS = {
     emptyParagraph: "(empty paragraph)",
     invalidPageRange:
       "The page range is invalid. Use values greater than 0, keep them within the detected document page count, and make sure the start page is not greater than the end page.",
-    customRangeMissingMarker:
-      "When custom range is enabled, both the start marker and end marker are required.",
-    customRangeStartNotUnique:
-      "The start marker did not match exactly one location. It matched {count} locations, so please paste a unique snippet.",
-    customRangeEndNotUnique:
-      "The end marker did not match exactly one location. It matched {count} locations, so please paste a unique snippet.",
-    customRangeOutOfOrder:
-      "The start marker appears after the end marker. Please adjust the custom range.",
     pageRangeUnavailable:
       "This document does not contain pagination markers that can locate real page boundaries, so page-range filtering cannot be applied reliably. Update pagination in Word first or turn page-range filtering off.",
     pageRangeWarningNoMarkers:
@@ -340,9 +298,8 @@ const TRANSLATIONS = {
 const HELP_COPY = {
   zh: {
     intro: [
-      "每条规则分成“匹配规则”和“重编号规则”两栏。",
-      "左侧匹配规则只负责正则识别旧标注，所有需要被改写的数字都要放进捕获组 `(...)` 里；如果只是分组不替换，请用 `(?:...)`。",
-      "右侧重编号规则里只有大括号占位符会被替换：`{n}` 表示递增编号，`{t数字}` 表示对应级别标题号，顺序要和左侧捕获组一一对应。",
+      "规则中只有大括号占位符会被自动改写，其它字符都只是用于匹配。",
+      "`{n}` 表示真正递增的编号；`{t数字}` 会按对应级别标题的出现顺序自动取值，比如 `{t1}`、`{t2}`、`{t3}`。",
       "每个占位符都可以单独设置起始编号，默认都是 1。",
     ],
     examplesTitle: "推荐示例",
@@ -351,9 +308,8 @@ const HELP_COPY = {
   },
   en: {
     intro: [
-      "Each rule is split into a match pattern and a renumber pattern.",
-      "The match pattern only detects old labels. Put every number you want to rewrite inside capturing groups `(...)`; use `(?:...)` for grouping without consuming placeholder order.",
-      "Only brace placeholders are rewritten on the right side: `{n}` is the incrementing number and `{tN}` comes from heading order at that level, aligned with the capture-group order on the left.",
+      "Only brace placeholders are rewritten automatically. Everything else is used for matching only.",
+      "`{n}` is the true incrementing number. `{tN}` comes from the order of headings at that level, such as `{t1}`, `{t2}`, or `{t3}`.",
       "Each placeholder has its own configurable start number, and all defaults are 1.",
     ],
     examplesTitle: "Recommended examples",
@@ -364,55 +320,53 @@ const HELP_COPY = {
 
 const HELP_EXAMPLES = {
   zh: [
-    { matchPattern: "图(\\\\d+)-(\\\\d+)", renumberPattern: "图{t1}-{n}", description: "按一级标题重写章号，并让每章内图号从 1 重新递增。" },
-    { matchPattern: "表(\\\\d+)-(\\\\d+)", renumberPattern: "表{t1}-{n}", description: "表格可以和图片分别配置匹配规则与重编号规则。" },
-    { matchPattern: "Fig\\\\.(\\\\d+)-(\\\\d+)", renumberPattern: "Fig\\\\.{t1}-{n}", description: "英文图注同样适用，左侧捕获组顺序对应右侧 `{t1}` 与 `{n}`。" },
+    { pattern: "图{t1}-{n}", description: "按一级标题自动改章号，每章内的图号重新从 1 递增。" },
+    { pattern: "表{t1}-{n}", description: "表格与图片可以分别设置规则与起始编号。" },
+    { pattern: "附图\\({t1}\\)-{n}", description: "大括号之外的括号、连接符、转义符等格式都会原样保留。" },
   ],
   en: [
-    { matchPattern: "Fig\\\\.(\\\\d+)-(\\\\d+)", renumberPattern: "Fig\\\\.{t1}-{n}", description: "Rewrite the chapter number from the current level-1 heading and restart figure numbers inside each top-level section." },
-    { matchPattern: "Table(\\\\d+)-(\\\\d+)", renumberPattern: "Table{t1}-{n}", description: "Tables can use their own match pattern and renumber pattern independently from figures." },
-    { matchPattern: "Figure\\\\s*(\\\\d+)", renumberPattern: "Figure {n}", description: "If only one number is rewritten, keep a single capture group on the left and a single placeholder on the right." },
+    { pattern: "Fig\\.{t1}-{n}", description: "Rewrite the chapter number from the current level-1 heading and restart figure numbers inside each top-level section." },
+    { pattern: "Table{t1}-{n}", description: "Tables and figures can use separate rules and separate start numbers." },
+    { pattern: "Appendix\\({t1}\\)-{n}", description: "Parentheses, separators, and escaped characters outside placeholders stay unchanged." },
   ],
 };
 
 const HELP_ROWS = {
   zh: [
-    { symbol: "(...)", meaning: "捕获组。匹配到的旧编号会按顺序对应右侧重编号规则中的占位符。", example: "图(\\\\d+)-(\\\\d+)" },
-    { symbol: "(?:...)", meaning: "只分组、不占用占位符顺序。", example: "图(?:S)?(\\\\d+)" },
-    { symbol: "\\\\d", meaning: "匹配 1 位数字。", example: "(\\\\d)" },
-    { symbol: "\\\\d+", meaning: "匹配连续的多位数字。", example: "(\\\\d+)" },
-    { symbol: ".", meaning: "匹配任意单个字符；如果要匹配句点本身，请写成 `\\\\.`。", example: "Fig\\\\.(\\\\d+)-(\\\\d+)" },
-    { symbol: "+", meaning: "前一个正则单元重复 1 次或多次。", example: "\\\\d+" },
-    { symbol: "*", meaning: "前一个正则单元重复 0 次或多次。", example: "\\\\s*" },
+    { symbol: "(...)", meaning: "把一段内容作为正则分组，只参与匹配，不会被自动改写。", example: "图(\\d+)-{n}" },
+    { symbol: "\\d", meaning: "匹配 1 位数字。", example: "(\\d)" },
+    { symbol: "\\d+", meaning: "匹配连续的多位数字。", example: "(\\d+)" },
+    { symbol: ".", meaning: "匹配任意单个字符；如果要匹配句点本身，请写成 `\\.`。", example: "Fig\\.{t1}-{n}" },
+    { symbol: "+", meaning: "前一个正则单元重复 1 次或多次。", example: "\\d+" },
+    { symbol: "*", meaning: "前一个正则单元重复 0 次或多次。", example: "\\s*" },
     { symbol: "?", meaning: "前一个正则单元重复 0 次或 1 次。", example: "图表?" },
-    { symbol: "|", meaning: "表示二选一。", example: "(图|表)(\\\\d+)" },
-    { symbol: "[...]", meaning: "匹配方括号内的任一字符。", example: "[图表](\\\\d+)" },
-    { symbol: "\\\\s", meaning: "匹配一个空白字符。", example: "Fig\\\\.\\\\s*(\\\\d+)" },
-    { symbol: "\\\\(", meaning: "匹配左括号本身。", example: "附图\\\\((\\\\d+)\\\\)" },
-    { symbol: "\\\\)", meaning: "匹配右括号本身。", example: "附图\\\\((\\\\d+)\\\\)" },
-    { symbol: "\\\\.", meaning: "匹配句点本身。", example: "Fig\\\\.(\\\\d+)-(\\\\d+)" },
-    { symbol: "{n}", meaning: "重编号规则里的递增编号。", example: "图{t1}-{n}" },
-    { symbol: "{t1}", meaning: "重编号规则里使用当前一级标题号，并应用 `{t1}` 的起始编号。", example: "图{t1}-{n}" },
-    { symbol: "{t2}", meaning: "重编号规则里使用当前二级标题号，并应用 `{t2}` 的起始编号。", example: "图{t1}-{t2}-{n}" },
+    { symbol: "|", meaning: "表示二选一。", example: "(图|表){t1}-{n}" },
+    { symbol: "[...]", meaning: "匹配方括号内的任一字符。", example: "[图表]{t1}-{n}" },
+    { symbol: "\\s", meaning: "匹配一个空白字符。", example: "Fig\\.\\s*{t1}-{n}" },
+    { symbol: "\\(", meaning: "匹配左括号本身。", example: "附图\\({t1}\\)-{n}" },
+    { symbol: "\\)", meaning: "匹配右括号本身。", example: "附图\\({t1}\\)-{n}" },
+    { symbol: "\\.", meaning: "匹配句点本身。", example: "Fig\\.{t1}-{n}" },
+    { symbol: "{n}", meaning: "真正需要重新递增的编号。", example: "图{t1}-{n}" },
+    { symbol: "{t1}", meaning: "用当前一级标题的顺序号替换，并应用 `{t1}` 的起始编号。", example: "图{t1}-{n}" },
+    { symbol: "{t2}", meaning: "用当前二级标题的顺序号替换，并应用 `{t2}` 的起始编号。", example: "图{t1}-{t2}-{n}" },
   ],
   en: [
-    { symbol: "(...)", meaning: "Capturing group. Matched old numbers align with placeholders in the renumber pattern by order.", example: "Fig\\\\.(\\\\d+)-(\\\\d+)" },
-    { symbol: "(?:...)", meaning: "Group without consuming placeholder order.", example: "Fig(?:ure)?\\\\.(\\\\d+)" },
-    { symbol: "\\\\d", meaning: "Match one digit.", example: "(\\\\d)" },
-    { symbol: "\\\\d+", meaning: "Match one or more digits.", example: "(\\\\d+)" },
-    { symbol: ".", meaning: "Match any single character. Use `\\\\.` for a literal dot.", example: "Fig\\\\.(\\\\d+)-(\\\\d+)" },
-    { symbol: "+", meaning: "Repeat the previous regex unit one or more times.", example: "\\\\d+" },
-    { symbol: "*", meaning: "Repeat the previous regex unit zero or more times.", example: "\\\\s*" },
+    { symbol: "(...)", meaning: "Group a regex part. It matches but is not renumbered.", example: "Fig\\.(\\d+)-{n}" },
+    { symbol: "\\d", meaning: "Match one digit.", example: "(\\d)" },
+    { symbol: "\\d+", meaning: "Match one or more digits.", example: "(\\d+)" },
+    { symbol: ".", meaning: "Match any single character. Use `\\.` for a literal dot.", example: "Fig\\.{t1}-{n}" },
+    { symbol: "+", meaning: "Repeat the previous regex unit one or more times.", example: "\\d+" },
+    { symbol: "*", meaning: "Repeat the previous regex unit zero or more times.", example: "\\s*" },
     { symbol: "?", meaning: "Repeat the previous regex unit zero or one time.", example: "Figure?" },
-    { symbol: "|", meaning: "Either-or choice.", example: "(Fig|Table)(\\\\d+)" },
-    { symbol: "[...]", meaning: "Match any one character inside the brackets.", example: "[FT](\\\\d+)" },
-    { symbol: "\\\\s", meaning: "Match one whitespace character.", example: "Fig\\\\.\\\\s*(\\\\d+)" },
-    { symbol: "\\\\(", meaning: "Match a literal left parenthesis.", example: "Appendix\\\\((\\\\d+)\\\\)" },
-    { symbol: "\\\\)", meaning: "Match a literal right parenthesis.", example: "Appendix\\\\((\\\\d+)\\\\)" },
-    { symbol: "\\\\.", meaning: "Match a literal dot.", example: "Fig\\\\.(\\\\d+)-(\\\\d+)" },
-    { symbol: "{n}", meaning: "The incrementing number in the renumber pattern.", example: "Fig\.{t1}-{n}" },
-    { symbol: "{t1}", meaning: "Use the current level-1 heading index in the renumber pattern, applying the `{t1}` start number.", example: "Fig\.{t1}-{n}" },
-    { symbol: "{t2}", meaning: "Use the current level-2 heading index in the renumber pattern, applying the `{t2}` start number.", example: "Fig\.{t1}-{t2}-{n}" },
+    { symbol: "|", meaning: "Either-or choice.", example: "(Fig|Table){t1}-{n}" },
+    { symbol: "[...]", meaning: "Match any one character inside the brackets.", example: "[FT]{t1}-{n}" },
+    { symbol: "\\s", meaning: "Match one whitespace character.", example: "Fig\\.\\s*{t1}-{n}" },
+    { symbol: "\\(", meaning: "Match a literal left parenthesis.", example: "Appendix\\({t1}\\)-{n}" },
+    { symbol: "\\)", meaning: "Match a literal right parenthesis.", example: "Appendix\\({t1}\\)-{n}" },
+    { symbol: "\\.", meaning: "Match a literal dot.", example: "Fig\\.{t1}-{n}" },
+    { symbol: "{n}", meaning: "The actual incrementing number to renumber.", example: "Fig\\.{t1}-{n}" },
+    { symbol: "{t1}", meaning: "Use the current level-1 heading index, applying the `{t1}` start number.", example: "Fig\\.{t1}-{n}" },
+    { symbol: "{t2}", meaning: "Use the current level-2 heading index, applying the `{t2}` start number.", example: "Fig\\.{t1}-{t2}-{n}" },
   ],
 };
 
@@ -433,9 +387,6 @@ const state = {
   file: null,
   language: loadInitialLanguage(),
   allowTextHeadingInference: loadInitialTextHeadingInference(),
-  enableCustomRange: loadInitialCustomRangeEnabled(),
-  customRangeStart: loadInitialTextValue("wnh-custom-range-start"),
-  customRangeEnd: loadInitialTextValue("wnh-custom-range-end"),
   enablePageRange: loadInitialPageRangeEnabled(),
   pageRangeStart: loadInitialPageRangeValue("wnh-page-range-start"),
   pageRangeEnd: loadInitialPageRangeValue("wnh-page-range-end"),
@@ -509,16 +460,6 @@ const elements = {
   uploadTitle: document.getElementById("uploadTitle"),
   uploadHint: document.getElementById("uploadHint"),
   documentScopePanel: document.getElementById("documentScopePanel"),
-  customRangeToggleCheckbox: document.getElementById("enableCustomRange"),
-  customRangeToggleLabel: document.getElementById("customRangeToggleLabel"),
-  customRangeToggleHint: document.getElementById("customRangeToggleHint"),
-  customRangeSection: document.getElementById("customRangeSection"),
-  customRangeTitle: document.getElementById("customRangeTitle"),
-  customRangeHint: document.getElementById("customRangeHint"),
-  customRangeStartLabel: document.getElementById("customRangeStartLabel"),
-  customRangeEndLabel: document.getElementById("customRangeEndLabel"),
-  customRangeStartInput: document.getElementById("customRangeStart"),
-  customRangeEndInput: document.getElementById("customRangeEnd"),
   documentPagesLabel: document.getElementById("documentPagesLabel"),
   documentPagesHint: document.getElementById("documentPagesHint"),
   documentPagesValue: document.getElementById("documentPagesValue"),
@@ -616,13 +557,8 @@ function bindEvents() {
       return;
     }
 
-    if (input.name === "matchPattern") {
-      rule.matchPattern = input.value;
-      syncPatternOverlay(input, input.value);
-    }
-
-    if (input.name === "renumberPattern") {
-      rule.renumberPattern = input.value;
+    if (input.name === "template") {
+      rule.template = input.value;
       syncPatternOverlay(input, input.value);
       syncRuleStartFields(input.closest(".rule-card"), rule);
     }
@@ -636,36 +572,6 @@ function bindEvents() {
     }
 
     clearPreviewState();
-  });
-
-  elements.rulesList?.addEventListener("focusin", (event) => {
-    const input = event.target;
-    if (!(input instanceof HTMLInputElement) || input.dataset.overlayInput !== "true") {
-      return;
-    }
-
-    const shell = input.closest(".input-overlay-shell");
-    if (!(shell instanceof HTMLDivElement)) {
-      return;
-    }
-
-    shell.classList.add("is-editing");
-    syncPatternOverlay(input, input.value);
-  });
-
-  elements.rulesList?.addEventListener("focusout", (event) => {
-    const input = event.target;
-    if (!(input instanceof HTMLInputElement) || input.dataset.overlayInput !== "true") {
-      return;
-    }
-
-    const shell = input.closest(".input-overlay-shell");
-    if (!(shell instanceof HTMLDivElement)) {
-      return;
-    }
-
-    shell.classList.remove("is-editing");
-    syncPatternOverlay(input, input.value);
   });
 
   elements.rulesList?.addEventListener("click", (event) => {
@@ -726,43 +632,6 @@ function bindEvents() {
     if (state.file) {
       setStatus(state.documentPageCountState === "pending" ? "readingDocumentInfo" : "fileReady");
     }
-  });
-
-  elements.customRangeToggleCheckbox?.addEventListener("change", (event) => {
-    const input = event.target;
-    if (!(input instanceof HTMLInputElement)) {
-      return;
-    }
-
-    state.enableCustomRange = input.checked;
-    window.localStorage.setItem("wnh-enable-custom-range", String(input.checked));
-    syncCustomRangeInputs();
-    clearPreviewState();
-    if (state.file) {
-      setStatus("fileReady");
-    }
-  });
-
-  [elements.customRangeStartInput, elements.customRangeEndInput].forEach((input) => {
-    input?.addEventListener("input", (event) => {
-      const target = event.target;
-      if (!(target instanceof HTMLTextAreaElement)) {
-        return;
-      }
-
-      if (target === elements.customRangeStartInput) {
-        state.customRangeStart = target.value;
-        window.localStorage.setItem("wnh-custom-range-start", state.customRangeStart);
-      } else {
-        state.customRangeEnd = target.value;
-        window.localStorage.setItem("wnh-custom-range-end", state.customRangeEnd);
-      }
-
-      clearPreviewState();
-      if (state.file) {
-        setStatus("fileReady");
-      }
-    });
   });
 
   elements.pageRangeToggleCheckbox?.addEventListener("change", (event) => {
@@ -874,16 +743,8 @@ function loadInitialTextHeadingInference() {
   return window.localStorage.getItem("wnh-text-heading-inference") === "true";
 }
 
-function loadInitialCustomRangeEnabled() {
-  return window.localStorage.getItem("wnh-enable-custom-range") === "true";
-}
-
 function loadInitialPageRangeEnabled() {
   return window.localStorage.getItem("wnh-enable-page-range") === "true";
-}
-
-function loadInitialTextValue(key) {
-  return window.localStorage.getItem(key) ?? "";
 }
 
 function loadInitialPageRangeValue(key) {
@@ -925,25 +786,6 @@ function syncPageRangeInputs() {
     } else {
       elements.pageRangeEndInput.removeAttribute("max");
     }
-  }
-}
-
-function syncCustomRangeInputs() {
-  elements.customRangeSection?.classList.toggle("is-hidden", !state.enableCustomRange);
-  if (elements.customRangeToggleCheckbox) {
-    elements.customRangeToggleCheckbox.checked = state.enableCustomRange;
-  }
-
-  if (elements.customRangeStartInput) {
-    elements.customRangeStartInput.value = state.customRangeStart;
-    elements.customRangeStartInput.placeholder = t("customRangeStartPlaceholder");
-    elements.customRangeStartInput.disabled = !state.enableCustomRange;
-  }
-
-  if (elements.customRangeEndInput) {
-    elements.customRangeEndInput.value = state.customRangeEnd;
-    elements.customRangeEndInput.placeholder = t("customRangeEndPlaceholder");
-    elements.customRangeEndInput.disabled = !state.enableCustomRange;
   }
 }
 
@@ -1046,12 +888,6 @@ function applyLanguage(language, { updateRules }) {
   setText(elements.step3Eyebrow, t("step3Eyebrow"));
   setText(elements.step3Title, t("step3Title"));
   setText(elements.scanDescription, t("scanDescription"));
-  setText(elements.customRangeToggleLabel, t("customRangeToggleLabel"));
-  setText(elements.customRangeToggleHint, t("customRangeToggleHint"));
-  setText(elements.customRangeTitle, t("customRangeTitle"));
-  setText(elements.customRangeHint, t("customRangeHint"));
-  setText(elements.customRangeStartLabel, t("customRangeStartLabel"));
-  setText(elements.customRangeEndLabel, t("customRangeEndLabel"));
   setText(elements.headingInferenceLabel, t("headingInferenceLabel"));
   setText(elements.headingInferenceHint, t("headingInferenceHint"));
   setText(elements.pageRangeToggleLabel, t("pageRangeToggleLabel"));
@@ -1063,7 +899,6 @@ function applyLanguage(language, { updateRules }) {
   if (elements.headingInferenceCheckbox) {
     elements.headingInferenceCheckbox.checked = state.allowTextHeadingInference;
   }
-  syncCustomRangeInputs();
   syncPageRangeInputs();
   setText(elements.analyzeButtonText, t("analyzeButtonText"));
   setText(elements.downloadButtonText, t("downloadButtonText"));
@@ -1129,14 +964,7 @@ function renderHelpDialogContent() {
     .map(
       (item) => `
         <article class="modal__example">
-          <div class="modal__example-pattern">
-            <span class="modal__example-label">${escapeHtml(t("matchPatternLabel"))}</span>
-            <strong class="pattern-inline">${renderMatchPatternInline(formatHelpDisplayPattern(item.matchPattern))}</strong>
-          </div>
-          <div class="modal__example-pattern">
-            <span class="modal__example-label">${escapeHtml(t("renumberPatternLabel"))}</span>
-            <strong class="pattern-inline">${renderPatternInline(formatHelpDisplayPattern(item.renumberPattern))}</strong>
-          </div>
+          <strong class="pattern-inline">${renderPatternInline(item.pattern)}</strong>
           <p>${escapeHtml(item.description)}</p>
         </article>
       `,
@@ -1146,9 +974,9 @@ function renderHelpDialogContent() {
     .map(
       (row) => `
         <tr>
-          <td><code>${escapeHtml(formatHelpDisplayPattern(row.symbol))}</code></td>
+          <td><code>${escapeHtml(row.symbol)}</code></td>
           <td>${renderInlineMarkdown(row.meaning)}</td>
-          <td><code>${escapeHtml(formatHelpDisplayPattern(row.example))}</code></td>
+          <td><code>${escapeHtml(row.example)}</code></td>
         </tr>
       `,
     )
@@ -1178,10 +1006,6 @@ function renderHelpDialogContent() {
 
 function renderInlineMarkdown(text) {
   return escapeHtml(text).replace(/`([^`]+)`/g, "<code>$1</code>");
-}
-
-function formatHelpDisplayPattern(value) {
-  return String(value ?? "").replace(/\\\\/g, "\\");
 }
 
 function createRuleStarts(overrides = {}) {
@@ -1232,42 +1056,21 @@ function getPlaceholderSortKey(name) {
 function createDefaultRules(language) {
   if (language === "en") {
     return [
-      {
-        id: crypto.randomUUID(),
-        matchPattern: "Fig\\.(\\d+)-(\\d+)",
-        renumberPattern: "Fig\\.{t1}-{n}",
-        starts: createRuleStarts(),
-      },
-      {
-        id: crypto.randomUUID(),
-        matchPattern: "Table(\\d+)-(\\d+)",
-        renumberPattern: "Table{t1}-{n}",
-        starts: createRuleStarts(),
-      },
+      { id: crypto.randomUUID(), template: "Fig\\.{t1}-{n}", starts: createRuleStarts() },
+      { id: crypto.randomUUID(), template: "Table{t1}-{n}", starts: createRuleStarts() },
     ];
   }
 
   return [
-    {
-      id: crypto.randomUUID(),
-      matchPattern: "图(\\d+)-(\\d+)",
-      renumberPattern: "图{t1}-{n}",
-      starts: createRuleStarts(),
-    },
-    {
-      id: crypto.randomUUID(),
-      matchPattern: "表(\\d+)-(\\d+)",
-      renumberPattern: "表{t1}-{n}",
-      starts: createRuleStarts(),
-    },
+    { id: crypto.randomUUID(), template: "图{t1}-{n}", starts: createRuleStarts() },
+    { id: crypto.randomUUID(), template: "表{t1}-{n}", starts: createRuleStarts() },
   ];
 }
 
 function createEmptyRule() {
   return {
     id: crypto.randomUUID(),
-    matchPattern: "",
-    renumberPattern: "",
+    template: "",
     starts: createRuleStarts(),
   };
 }
@@ -1287,8 +1090,7 @@ function areRulesUsingDefaultTemplates(rules, language) {
 
 function normalizeRuleForCompare(rule) {
   return {
-    matchPattern: rule.matchPattern ?? "",
-    renumberPattern: rule.renumberPattern ?? "",
+    template: rule.template ?? "",
     starts: normalizeRuleStarts(rule.starts),
   };
 }
@@ -1311,9 +1113,11 @@ function handleFileSelection(file) {
 
   if (!file) {
     state.file = null;
+    state.documentPageCount = null;
+    state.documentPageCountState = "idle";
     renderDocumentScope();
     renderFileMeta();
-    syncCustomRangeInputs();
+    renderDocumentPageInfo();
     syncPageRangeInputs();
     setStatus("waitingUpload");
     return;
@@ -1321,18 +1125,124 @@ function handleFileSelection(file) {
 
   if (!file.name.toLowerCase().endsWith(".docx")) {
     state.file = null;
+    state.documentPageCount = null;
+    state.documentPageCountState = "idle";
     renderDocumentScope();
     setText(elements.fileMeta, t("chooseDocx"));
+    renderDocumentPageInfo();
     setStatus("onlyDocx", "warn");
     return;
   }
 
   state.file = file;
+  state.documentPageCount = null;
+  state.documentPageCountState = "pending";
   renderDocumentScope();
   renderFileMeta();
-  syncCustomRangeInputs();
+  renderDocumentPageInfo();
   syncPageRangeInputs();
-  setStatus("fileReady");
+  setStatus("readingDocumentInfo");
+  void inspectUploadedDocument(file);
+}
+
+async function inspectUploadedDocument(file) {
+  if (typeof JSZip === "undefined") {
+    state.documentPageCount = null;
+    state.documentPageCountState = "pending";
+    renderDocumentPageInfo();
+    setStatus("jszipLoading", "warn");
+    return;
+  }
+
+  try {
+    const pageCount = await readDocumentPageCount(await file.arrayBuffer());
+    if (state.file !== file) {
+      return;
+    }
+
+    state.documentPageCount = Number.isInteger(pageCount) && pageCount > 0 ? pageCount : null;
+    state.documentPageCountState = state.documentPageCount ? "ready" : "unknown";
+    renderDocumentPageInfo();
+    syncPageRangeInputs();
+
+    try {
+      if (state.enablePageRange) {
+        normalizePageRange(state.pageRangeStart, state.pageRangeEnd, state.documentPageCount);
+      }
+      setStatus("fileReady");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : t("invalidPageRange"), "warn", { isRaw: true });
+    }
+  } catch (error) {
+    console.warn("Failed to inspect uploaded document", error);
+    if (state.file !== file) {
+      return;
+    }
+
+    state.documentPageCount = null;
+    state.documentPageCountState = "unknown";
+    renderDocumentPageInfo();
+    syncPageRangeInputs();
+    setStatus("fileReady");
+  }
+}
+
+async function readDocumentPageCount(arrayBuffer) {
+  const zip = await JSZip.loadAsync(arrayBuffer);
+  const appXmlFile = zip.file("docProps/app.xml");
+  if (appXmlFile) {
+    const xmlText = await appXmlFile.async("text");
+    const xmlDoc = new DOMParser().parseFromString(xmlText, "application/xml");
+    if (!xmlDoc.querySelector("parsererror")) {
+      const pagesNode =
+        xmlDoc.getElementsByTagName("Pages")[0] ??
+        xmlDoc.getElementsByTagNameNS("*", "Pages")[0] ??
+        null;
+      const pages = parseOptionalPositiveInteger(pagesNode?.textContent ?? "");
+      if (Number.isInteger(pages)) {
+        return pages;
+      }
+    }
+  }
+
+  const partNames = Object.keys(zip.files)
+    .filter(
+      (name) =>
+        /^word\/.+\.xml$/i.test(name) &&
+        !/\/(styles|theme|fontTable|settings|webSettings|numbering)\.xml$/i.test(name),
+    )
+    .sort((left, right) => comparePartNames(left, right));
+
+  const docs = [];
+  let nextParagraphOrder = 0;
+
+  for (const partName of partNames) {
+    const file = zip.file(partName);
+    if (!file) {
+      continue;
+    }
+
+    const xmlText = await file.async("text");
+    if (!xmlText.includes("<w:p")) {
+      continue;
+    }
+
+    const xmlDoc = new DOMParser().parseFromString(xmlText, "application/xml");
+    if (xmlDoc.querySelector("parsererror")) {
+      continue;
+    }
+
+    const paragraphs = collectParagraphs(xmlDoc, partName, nextParagraphOrder);
+    nextParagraphOrder += paragraphs.length;
+    docs.push({ partName, xmlDoc, paragraphs });
+  }
+
+  if (!docs.length) {
+    return null;
+  }
+
+  const pageTracking = assignDocumentPageNumbers(docs);
+  return Number.isInteger(pageTracking.estimatedPageCount) ? pageTracking.estimatedPageCount : null;
 }
 
 async function resetHeadingFilters() {
@@ -1359,36 +1269,17 @@ function renderRules() {
       return `
         <article class="rule-card" data-rule-id="${escapeHtml(rule.id)}">
           <div class="field field--full">
-            <label for="match-pattern-${escapeHtml(rule.id)}">${escapeHtml(t("matchPatternLabel"))} ${index + 1}</label>
+            <label for="template-${escapeHtml(rule.id)}">${escapeHtml(t("ruleLabel"))} ${index + 1}</label>
             <div class="input-overlay-shell">
-              <div class="input-overlay" aria-hidden="true">${renderMatchPatternOverlay(rule.matchPattern)}</div>
+              <div class="input-overlay" aria-hidden="true">${renderPatternOverlay(rule.template)}</div>
               <input
-                id="match-pattern-${escapeHtml(rule.id)}"
-                name="matchPattern"
+                id="template-${escapeHtml(rule.id)}"
+                name="template"
                 type="text"
-                placeholder="${escapeHtml(t("matchPatternPlaceholder"))}"
-                value="${escapeHtml(rule.matchPattern)}"
+                placeholder="${escapeHtml(t("rulePlaceholder"))}"
+                value="${escapeHtml(rule.template)}"
                 autocomplete="off"
                 spellcheck="false"
-                data-overlay-input="true"
-                data-overlay-mode="match"
-              />
-            </div>
-          </div>
-          <div class="field field--full">
-            <label for="renumber-pattern-${escapeHtml(rule.id)}">${escapeHtml(t("renumberPatternLabel"))} ${index + 1}</label>
-            <div class="input-overlay-shell">
-              <div class="input-overlay" aria-hidden="true">${renderPatternOverlay(rule.renumberPattern)}</div>
-              <input
-                id="renumber-pattern-${escapeHtml(rule.id)}"
-                name="renumberPattern"
-                type="text"
-                placeholder="${escapeHtml(t("renumberPatternPlaceholder"))}"
-                value="${escapeHtml(rule.renumberPattern)}"
-                autocomplete="off"
-                spellcheck="false"
-                data-overlay-input="true"
-                data-overlay-mode="renumber"
               />
             </div>
           </div>
@@ -1406,7 +1297,7 @@ function renderRules() {
 }
 
 function renderPlaceholderStartFields(rule) {
-  const placeholders = getRulePlaceholderNames(rule.renumberPattern);
+  const placeholders = getRulePlaceholderNames(rule.template);
   return placeholders.map((placeholder) => renderPlaceholderStartField(rule, placeholder)).join("");
 }
 
@@ -1498,6 +1389,16 @@ async function analyzeDocument() {
     return;
   }
 
+  let pageRange;
+  try {
+    pageRange = state.enablePageRange
+      ? normalizePageRange(state.pageRangeStart, state.pageRangeEnd, state.documentPageCount)
+      : null;
+  } catch (error) {
+    setStatus(error instanceof Error ? error.message : t("invalidPageRange"), "warn", { isRaw: true });
+    return;
+  }
+
   if (elements.analyzeButton) {
     elements.analyzeButton.disabled = true;
   }
@@ -1510,12 +1411,8 @@ async function analyzeDocument() {
     const preview = await processDocx(await state.file.arrayBuffer(), compiledRules, {
       headingExclusions: state.headingExclusions,
       allowTextHeadingInference: state.allowTextHeadingInference,
-      customRange: state.enableCustomRange
-        ? {
-            startMarker: state.customRangeStart,
-            endMarker: state.customRangeEnd,
-          }
-        : null,
+      pageRange,
+      documentPageCount: state.documentPageCount,
     });
     state.preview = preview;
     renderPreview(preview);
@@ -1524,7 +1421,7 @@ async function analyzeDocument() {
     }
 
     const headingMessage =
-      buildHeadingSummary(preview.headingCounts, compiledRules) + buildCustomRangeSummary(preview.customRangeInfo);
+      buildHeadingSummary(preview.headingCounts, compiledRules) + buildPageRangeSummary(preview.pageInfo);
 
     setStatus("processedStatus", "info", {
       captions: preview.captions.length,
@@ -1533,9 +1430,6 @@ async function analyzeDocument() {
     });
   } catch (error) {
     console.error(error);
-    if (error?.code === "custom_range") {
-      window.alert(error.message);
-    }
     setStatus(error instanceof Error ? error.message : t("processFailed"), "warn", { isRaw: true });
   } finally {
     if (elements.analyzeButton) {
@@ -1546,7 +1440,7 @@ async function analyzeDocument() {
 
 async function processDocx(arrayBuffer, compiledRules, options = {}) {
   const zip = await JSZip.loadAsync(arrayBuffer);
-  const customRangeConfig = options.customRange ?? null;
+  const pageRange = options.pageRange ?? null;
   const stylesInfo = await parseStylesInfo(zip);
   const partNames = Object.keys(zip.files)
     .filter(
@@ -1584,28 +1478,33 @@ async function processDocx(arrayBuffer, compiledRules, options = {}) {
     throw new Error(t("noProcessableXmlError"));
   }
 
-  assignMainDocumentOffsets(docs);
-  const customRange = customRangeConfig ? resolveCustomRange(docs, customRangeConfig) : null;
-  const customRangeInfo = {
-    applied: Boolean(customRange),
-    range: customRange,
+  const pageTracking = assignDocumentPageNumbers(docs);
+  const reportedPageCount = Number.isInteger(options.documentPageCount) ? options.documentPageCount : null;
+  if (pageRange && pageTracking.detectedPageBreaks === 0 && (reportedPageCount ?? 1) > 1) {
+    throw new Error(t("pageRangeUnavailable"));
+  }
+
+  const pageInfo = {
+    applied: Boolean(pageRange),
+    range: pageRange,
+    detectedPageBreaks: pageTracking.detectedPageBreaks,
+    estimatedPageCount: pageTracking.estimatedPageCount,
+    reportedPageCount,
+    skippedUnmappedCandidates: 0,
   };
 
   const headingInfo = buildHeadingContexts(docs, stylesInfo, {
     ignoredHeadingOrders: options.headingExclusions,
     allowTextHeadingInference: options.allowTextHeadingInference,
-    customRange,
+    pageRange,
   });
   const candidates = [];
 
   for (const doc of docs) {
     for (const paragraph of doc.paragraphs) {
-      if (customRange && paragraph.partName !== "word/document.xml") {
-        continue;
-      }
-
       const paragraphCandidates = selectCandidates(paragraph.fullText, compiledRules);
       for (const candidate of paragraphCandidates) {
+        const pageNumber = resolveCandidatePageNumber(paragraph, candidate.start);
         const enrichedCandidate = {
           ...candidate,
           partName: doc.partName,
@@ -1615,9 +1514,13 @@ async function processDocx(arrayBuffer, compiledRules, options = {}) {
           chapterContext: paragraph.chapterContext,
           excerpt: collapseWhitespace(paragraph.fullText),
           classification: classifyCandidate(paragraph.fullText, candidate),
+          pageNumber,
         };
 
-        if (customRange && !isCandidateWithinCustomRange(enrichedCandidate, customRange)) {
+        if (pageRange && !isCandidateWithinPageRange(pageNumber, pageRange)) {
+          if (pageNumber === null) {
+            pageInfo.skippedUnmappedCandidates += 1;
+          }
           continue;
         }
 
@@ -1696,8 +1599,8 @@ async function processDocx(arrayBuffer, compiledRules, options = {}) {
     headingCounts: headingInfo.counts,
     headingGroups: headingInfo.groups,
     usedHeadingPlaceholders: getUsedHeadingPlaceholders(compiledRules),
-    customRangeInfo,
-    warnings: buildWarnings(captions, references, captionMap, headingInfo, compiledRules, customRangeInfo),
+    pageInfo,
+    warnings: buildWarnings(captions, references, captionMap, headingInfo, compiledRules, pageInfo),
   };
 }
 
@@ -1719,32 +1622,17 @@ function compileRules(rules) {
   const cleaned = rules
     .map((rule) => ({
       ...rule,
-      matchPattern: String(rule.matchPattern ?? "").trim(),
-      renumberPattern: String(rule.renumberPattern ?? "").trim(),
+      template: String(rule.template ?? "").trim(),
       starts: normalizeRuleStarts(rule.starts),
     }))
-    .filter((rule) => rule.matchPattern || rule.renumberPattern);
+    .filter((rule) => rule.template);
 
   if (cleaned.length === 0) {
     throw new Error(t("keepOneRule"));
   }
 
   return cleaned.map((rule) => {
-    if (!rule.matchPattern || !rule.renumberPattern) {
-      throw new Error(t("incompleteRuleError"));
-    }
-
-    const matchPlaceholders = extractPlaceholders(rule.matchPattern);
-    if (matchPlaceholders.length) {
-      throw new Error(
-        t("matchPatternPlaceholderError", {
-          rule: rule.matchPattern,
-          placeholder: matchPlaceholders[0].raw,
-        }),
-      );
-    }
-
-    const placeholders = extractPlaceholders(rule.renumberPattern);
+    const placeholders = extractPlaceholders(rule.template);
     const counts = new Map();
 
     for (const placeholder of placeholders) {
@@ -1752,7 +1640,7 @@ function compileRules(rules) {
       if (!getPlaceholderMeta(placeholder.name)) {
         throw new Error(
           t("unsupportedPlaceholderError", {
-            rule: rule.renumberPattern,
+            rule: rule.template,
             placeholder: `{${placeholder.name}}`,
           }),
         );
@@ -1760,36 +1648,26 @@ function compileRules(rules) {
     }
 
     if ((counts.get("n") ?? 0) === 0) {
-      throw new Error(t("missingPlaceholderError", { rule: rule.renumberPattern }));
+      throw new Error(t("missingPlaceholderError", { rule: rule.template }));
     }
 
     for (const [name, count] of counts.entries()) {
       if (count > 1) {
         throw new Error(
           t("duplicatePlaceholderError", {
-            rule: rule.renumberPattern,
+            rule: rule.template,
             placeholder: `{${name}}`,
           }),
         );
       }
     }
 
+    const regexBody = buildRuleRegex(rule.template, placeholders);
     let regex;
     try {
-      regex = new RegExp(rule.matchPattern, "dgu");
+      regex = new RegExp(regexBody, "dgu");
     } catch {
-      throw new Error(t("invalidRegexError", { rule: rule.matchPattern }));
-    }
-
-    const captureGroupCount = countCapturingGroups(rule.matchPattern);
-    if (captureGroupCount < placeholders.length) {
-      throw new Error(
-        t("captureGroupCountError", {
-          matchPattern: rule.matchPattern,
-          renumberPattern: rule.renumberPattern,
-          count: placeholders.length,
-        }),
-      );
+      throw new Error(t("invalidRegexError", { rule: rule.template }));
     }
 
     const headingPlaceholders = placeholders
@@ -1799,7 +1677,6 @@ function compileRules(rules) {
     return {
       ...rule,
       regex,
-      captureGroupOffset: captureGroupCount - placeholders.length,
       placeholders,
       placeholderOrder: placeholders.map((item) => item.name),
       headingPlaceholders,
@@ -1809,6 +1686,7 @@ function compileRules(rules) {
 
 function extractPlaceholders(template) {
   const result = [];
+  let slotIndex = 0;
 
   for (const match of template.matchAll(/\{([a-z]\d*)\}/g)) {
     result.push({
@@ -1816,57 +1694,25 @@ function extractPlaceholders(template) {
       raw: match[0],
       index: match.index ?? 0,
       length: match[0].length,
+      groupName: `slot_${slotIndex}`,
     });
+    slotIndex += 1;
   }
 
   return result;
 }
 
-function countCapturingGroups(pattern) {
-  let count = 0;
-  let escaped = false;
-  let inCharClass = false;
+function buildRuleRegex(template, placeholders) {
+  let cursor = 0;
+  let result = "";
 
-  for (let index = 0; index < pattern.length; index += 1) {
-    const char = pattern[index];
-
-    if (escaped) {
-      escaped = false;
-      continue;
-    }
-
-    if (char === "\\") {
-      escaped = true;
-      continue;
-    }
-
-    if (inCharClass) {
-      if (char === "]") {
-        inCharClass = false;
-      }
-      continue;
-    }
-
-    if (char === "[") {
-      inCharClass = true;
-      continue;
-    }
-
-    if (char !== "(") {
-      continue;
-    }
-
-    if (pattern[index + 1] === "?") {
-      if (pattern[index + 2] === "<" && !["=", "!"].includes(pattern[index + 3] ?? "")) {
-        count += 1;
-      }
-      continue;
-    }
-
-    count += 1;
+  for (const placeholder of placeholders) {
+    result += template.slice(cursor, placeholder.index);
+    result += `(?<${placeholder.groupName}>\\d+)`;
+    cursor = placeholder.index + placeholder.length;
   }
 
-  return count;
+  return result + template.slice(cursor);
 }
 
 function collectParagraphs(xmlDoc, partName, startOrder) {
@@ -1997,7 +1843,7 @@ function detectHeadingLevelFromStyleLabel(label) {
 function buildHeadingContexts(docs, stylesInfo, options = {}) {
   const ignoredHeadingOrders = options.ignoredHeadingOrders ?? new Set();
   const allowTextHeadingInference = options.allowTextHeadingInference === true;
-  const customRange = options.customRange ?? null;
+  const pageRange = options.pageRange ?? null;
   const counts = {};
   const groups = {};
   const currentHeadings = new Map();
@@ -2010,7 +1856,7 @@ function buildHeadingContexts(docs, stylesInfo, options = {}) {
         continue;
       }
 
-      const paragraphInRange = isParagraphWithinCustomRange(paragraph, customRange);
+      const paragraphInRange = isParagraphWithinPageRange(paragraph, pageRange);
       const headingLevel =
         paragraphInRange && !ignoredHeadingOrders.has(paragraph.order)
           ? getParagraphHeadingLevel(paragraph, stylesInfo, allowTextHeadingInference)
@@ -2238,199 +2084,6 @@ function isParagraphWithinPageRange(paragraph, pageRange) {
   return true;
 }
 
-function assignMainDocumentOffsets(docs) {
-  let offset = 0;
-
-  for (const doc of docs) {
-    for (const paragraph of doc.paragraphs) {
-      if (paragraph.partName !== "word/document.xml") {
-        paragraph.documentStart = null;
-        paragraph.documentEnd = null;
-        continue;
-      }
-
-      paragraph.documentStart = offset;
-      paragraph.documentEnd = offset + paragraph.fullText.length;
-      offset = paragraph.documentEnd + 1;
-    }
-  }
-}
-
-function resolveCustomRange(docs, config) {
-  const startMarker = collapseWhitespace(config?.startMarker ?? "").trim();
-  const endMarker = collapseWhitespace(config?.endMarker ?? "").trim();
-
-  if (!startMarker || !endMarker) {
-    throw createCustomRangeError(t("customRangeMissingMarker"));
-  }
-
-  const mainParagraphs = docs
-    .flatMap((doc) => doc.paragraphs)
-    .filter((paragraph) => paragraph.partName === "word/document.xml");
-  const searchIndex = createMainDocumentSearchIndex(mainParagraphs);
-
-  const startMatches = findMarkerMatches(searchIndex, startMarker);
-  if (startMatches.length !== 1) {
-    throw createCustomRangeError(t("customRangeStartNotUnique", { count: startMatches.length }));
-  }
-
-  const endMatches = findMarkerMatches(searchIndex, endMarker);
-  if (endMatches.length !== 1) {
-    throw createCustomRangeError(t("customRangeEndNotUnique", { count: endMatches.length }));
-  }
-
-  const startMatch = startMatches[0];
-  const endMatch = endMatches[0];
-  if (startMatch.absoluteStart >= endMatch.absoluteEnd) {
-    throw createCustomRangeError(t("customRangeOutOfOrder"));
-  }
-
-  return {
-    startOrder: startMatch.paragraphOrder,
-    startOffset: startMatch.paragraphOffset,
-    endOrder: endMatch.paragraphOrder,
-    endOffset: endMatch.paragraphEndOffset,
-    startMarker,
-    endMarker,
-  };
-}
-
-function createMainDocumentSearchIndex(paragraphs) {
-  const parts = [];
-  for (const paragraph of paragraphs) {
-    parts.push(paragraph.fullText);
-    parts.push("\n");
-  }
-
-  const original = parts.join("");
-  const normalized = normalizeTextWithMap(original);
-  return { paragraphs, normalized };
-}
-
-function normalizeTextWithMap(text) {
-  let normalized = "";
-  const map = [];
-  let pendingSpace = false;
-
-  for (let index = 0; index < text.length; index += 1) {
-    const character = text[index];
-    if (/\s/u.test(character)) {
-      pendingSpace = normalized.length > 0;
-      continue;
-    }
-
-    if (pendingSpace) {
-      map.push(index);
-      normalized += " ";
-      pendingSpace = false;
-    }
-
-    map.push(index);
-    normalized += character;
-  }
-
-  return { text: normalized, map };
-}
-
-function findMarkerMatches(searchIndex, marker) {
-  const matches = [];
-  const haystack = searchIndex.normalized.text;
-  let fromIndex = 0;
-
-  while (fromIndex <= haystack.length) {
-    const foundIndex = haystack.indexOf(marker, fromIndex);
-    if (foundIndex === -1) {
-      break;
-    }
-
-    const normalizedEnd = foundIndex + marker.length;
-    const absoluteStart = searchIndex.normalized.map[foundIndex];
-    const absoluteEnd = (searchIndex.normalized.map[normalizedEnd - 1] ?? absoluteStart) + 1;
-    matches.push(buildMarkerMatch(searchIndex.paragraphs, absoluteStart, absoluteEnd));
-    fromIndex = foundIndex + 1;
-  }
-
-  return matches.filter(Boolean);
-}
-
-function buildMarkerMatch(paragraphs, absoluteStart, absoluteEnd) {
-  const startLocation = locateParagraphByAbsoluteOffset(paragraphs, absoluteStart);
-  const endLocation = locateParagraphByAbsoluteOffset(paragraphs, Math.max(absoluteStart, absoluteEnd - 1));
-  if (!startLocation || !endLocation) {
-    return null;
-  }
-
-  return {
-    absoluteStart,
-    absoluteEnd,
-    paragraphOrder: startLocation.paragraph.order,
-    paragraphOffset: startLocation.offset,
-    paragraphEndOrder: endLocation.paragraph.order,
-    paragraphEndOffset: endLocation.offset + 1,
-  };
-}
-
-function locateParagraphByAbsoluteOffset(paragraphs, absoluteOffset) {
-  for (const paragraph of paragraphs) {
-    if (!Number.isInteger(paragraph.documentStart) || !Number.isInteger(paragraph.documentEnd)) {
-      continue;
-    }
-
-    if (absoluteOffset >= paragraph.documentStart && absoluteOffset <= paragraph.documentEnd) {
-      const clampedOffset = Math.max(0, Math.min(paragraph.fullText.length, absoluteOffset - paragraph.documentStart));
-      return { paragraph, offset: clampedOffset };
-    }
-  }
-
-  return null;
-}
-
-function createCustomRangeError(message) {
-  const error = new Error(message);
-  error.code = "custom_range";
-  return error;
-}
-
-function isParagraphWithinCustomRange(paragraph, customRange) {
-  if (!customRange) {
-    return paragraph.partName === "word/document.xml";
-  }
-
-  if (paragraph.partName !== "word/document.xml") {
-    return false;
-  }
-
-  if (paragraph.order < customRange.startOrder || paragraph.order > customRange.endOrder) {
-    return false;
-  }
-
-  return true;
-}
-
-function isCandidateWithinCustomRange(candidate, customRange) {
-  if (!customRange) {
-    return candidate.partName === "word/document.xml";
-  }
-
-  if (candidate.partName !== "word/document.xml") {
-    return false;
-  }
-
-  if (candidate.paragraphOrder < customRange.startOrder || candidate.paragraphOrder > customRange.endOrder) {
-    return false;
-  }
-
-  if (candidate.paragraphOrder === customRange.startOrder && candidate.start < customRange.startOffset) {
-    return false;
-  }
-
-  if (candidate.paragraphOrder === customRange.endOrder && candidate.end > customRange.endOffset) {
-    return false;
-  }
-
-  return true;
-}
-
 function walkParagraph(node, pieces, cursor, context) {
   if (node.nodeType !== Node.ELEMENT_NODE) {
     return;
@@ -2519,11 +2172,9 @@ function selectCandidates(fullText, compiledRules) {
     for (const match of fullText.matchAll(rule.regex)) {
       const start = match.index ?? 0;
       const placeholders = {};
-      const captureGroupOffset = rule.captureGroupOffset ?? 0;
 
-      for (const [index, placeholder] of rule.placeholders.entries()) {
-        const groupIndex = captureGroupOffset + index + 1;
-        const indices = match.indices?.[groupIndex];
+      for (const placeholder of rule.placeholders) {
+        const indices = match.indices?.groups?.[placeholder.groupName];
         if (!indices) {
           continue;
         }
@@ -2532,11 +2183,11 @@ function selectCandidates(fullText, compiledRules) {
           name: placeholder.name,
           start: indices[0],
           end: indices[1],
-          value: match[groupIndex] ?? fullText.slice(indices[0], indices[1]),
+          value: match.groups?.[placeholder.groupName] ?? fullText.slice(indices[0], indices[1]),
         };
       }
 
-      if (Object.keys(placeholders).length !== rule.placeholderOrder.length) {
+      if (!placeholders.n) {
         continue;
       }
 
@@ -2546,6 +2197,8 @@ function selectCandidates(fullText, compiledRules) {
         end: start + match[0].length,
         text: match[0],
         placeholders,
+        renumberStart: placeholders.n.start,
+        renumberEnd: placeholders.n.end,
       };
 
       const list = byStart.get(start) ?? [];
@@ -2611,8 +2264,24 @@ function renumberCaption(candidate, counters) {
   counters.set(counterKey, nextValue + 1);
   resolvedPlaceholders.n = String(nextValue);
 
+  const replacements = candidate.rule.placeholderOrder
+    .map((placeholder) => {
+      const span = candidate.placeholders[placeholder];
+      if (!span) {
+        return null;
+      }
+
+      const value =
+        placeholder === "n"
+          ? resolvedPlaceholders.n
+          : resolvedPlaceholders[placeholder] ?? candidate.placeholders[placeholder]?.value ?? "";
+
+      return { start: span.start, end: span.end, value };
+    })
+    .filter(Boolean);
+
   return {
-    newText: buildRenumberedText(candidate, resolvedPlaceholders),
+    newText: applyCandidateReplacements(candidate, replacements),
     placeholderFallbacks,
     resolvedPlaceholders,
   };
@@ -2632,20 +2301,16 @@ function resolveHeadingPlaceholder(candidate, placeholder) {
   return heading.sequence + candidate.rule.starts[placeholder] - 1;
 }
 
-function buildRenumberedText(candidate, resolvedPlaceholders) {
-  let cursor = 0;
-  let result = "";
+function applyCandidateReplacements(candidate, replacements) {
+  let result = candidate.text;
 
-  for (const placeholder of candidate.rule.placeholders) {
-    result += candidate.rule.renumberPattern.slice(cursor, placeholder.index);
-    result +=
-      resolvedPlaceholders?.[placeholder.name] ??
-      candidate.placeholders[placeholder.name]?.value ??
-      "";
-    cursor = placeholder.index + placeholder.length;
+  for (const replacement of [...replacements].sort((left, right) => right.start - left.start)) {
+    const localStart = replacement.start - candidate.start;
+    const localEnd = replacement.end - candidate.start;
+    result = result.slice(0, localStart) + replacement.value + result.slice(localEnd);
   }
 
-  return result + candidate.rule.renumberPattern.slice(cursor);
+  return result;
 }
 
 function resolveReferenceTarget(reference, mapped) {
@@ -2716,7 +2381,7 @@ function writeSegment(segment) {
   }
 }
 
-function buildWarnings(captions, references, captionMap, headingInfo, compiledRules, customRangeInfo) {
+function buildWarnings(captions, references, captionMap, headingInfo, compiledRules, pageInfo) {
   const warnings = [];
 
   for (const [, mapped] of captionMap.entries()) {
@@ -2755,6 +2420,14 @@ function buildWarnings(captions, references, captionMap, headingInfo, compiledRu
     warnings.push(t("noReferenceFound"));
   }
 
+  if (pageInfo?.applied && pageInfo.detectedPageBreaks === 0) {
+    warnings.push(t("pageRangeWarningNoMarkers"));
+  }
+
+  if (pageInfo?.applied && pageInfo.skippedUnmappedCandidates > 0) {
+    warnings.push(t("pageRangeWarningUnmapped", { count: pageInfo.skippedUnmappedCandidates }));
+  }
+
   return warnings;
 }
 
@@ -2787,16 +2460,29 @@ function buildHeadingSummary(headingCounts, compiledRules) {
     : `；检测到标题层级计数：${parts.join("、")}`;
 }
 
-function buildCustomRangeSummary(customRangeInfo) {
-  if (!customRangeInfo?.applied || !customRangeInfo.range) {
+function buildPageRangeSummary(pageInfo) {
+  if (!pageInfo?.applied || !pageInfo.range) {
     return "";
   }
 
+  const { start, end } = pageInfo.range;
   if (state.language === "en") {
-    return ", custom range enabled";
+    if (start !== null && end !== null) {
+      return `, page range ${start}-${end}`;
+    }
+    if (start !== null) {
+      return `, pages from ${start}`;
+    }
+    return `, pages through ${end}`;
   }
 
-  return "，已按自定义范围扫描";
+  if (start !== null && end !== null) {
+    return `，页码范围 ${start}-${end}`;
+  }
+  if (start !== null) {
+    return `，从第 ${start} 页开始`;
+  }
+  return `，到第 ${end} 页为止`;
 }
 
 function renderPreview(preview) {
@@ -2985,23 +2671,15 @@ function makeMappingKey(ruleId, originalText) {
 }
 
 function renderPatternOverlay(pattern) {
-  return renderPatternTokens(pattern, { mode: "overlay", allowPlaceholders: true });
-}
-
-function renderMatchPatternOverlay(pattern) {
-  return renderPatternTokens(pattern, { mode: "overlay", allowPlaceholders: false });
+  return renderPatternTokens(pattern, { mode: "overlay" });
 }
 
 function renderPatternInline(pattern) {
-  return renderPatternTokens(pattern, { mode: "inline", allowPlaceholders: true });
+  return renderPatternTokens(pattern, { mode: "inline" });
 }
 
-function renderMatchPatternInline(pattern) {
-  return renderPatternTokens(pattern, { mode: "inline", allowPlaceholders: false });
-}
-
-function renderPatternTokens(pattern, { mode, allowPlaceholders }) {
-  const tokens = tokenizePattern(pattern, { allowPlaceholders });
+function renderPatternTokens(pattern, { mode }) {
+  const tokens = tokenizePattern(pattern);
   return tokens
     .map((token) => {
       if (mode === "inline") {
@@ -3072,13 +2750,9 @@ function getPlaceholderVisual(name) {
   };
 }
 
-function tokenizePattern(pattern, { allowPlaceholders } = {}) {
+function tokenizePattern(pattern) {
   if (!pattern) {
     return [];
-  }
-
-  if (!allowPlaceholders) {
-    return tokenizeRegexAndLiteral(pattern);
   }
 
   const tokens = [];
@@ -3128,17 +2802,7 @@ function syncPatternOverlay(input, pattern) {
     return;
   }
 
-  if (shell?.classList.contains("is-editing")) {
-    overlay.innerHTML = "";
-    return;
-  }
-
-  const mode = input.dataset.overlayMode === "match" ? "match" : "renumber";
-  overlay.innerHTML = pattern
-    ? mode === "match"
-      ? renderMatchPatternOverlay(pattern)
-      : renderPatternOverlay(pattern)
-    : "";
+  overlay.innerHTML = pattern ? renderPatternOverlay(pattern) : "";
 }
 
 function openHelpDialog() {
