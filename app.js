@@ -557,8 +557,13 @@ function bindEvents() {
       return;
     }
 
-    if (input.name === "template") {
-      rule.template = input.value;
+    if (input.name === "matchPattern") {
+      rule.matchPattern = input.value;
+      syncPatternOverlay(input, input.value);
+    }
+
+    if (input.name === "renumberPattern") {
+      rule.renumberPattern = input.value;
       syncPatternOverlay(input, input.value);
       syncRuleStartFields(input.closest(".rule-card"), rule);
     }
@@ -572,6 +577,36 @@ function bindEvents() {
     }
 
     clearPreviewState();
+  });
+
+  elements.rulesList?.addEventListener("focusin", (event) => {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement) || input.dataset.overlayInput !== "true") {
+      return;
+    }
+
+    const shell = input.closest(".input-overlay-shell");
+    if (!(shell instanceof HTMLDivElement)) {
+      return;
+    }
+
+    shell.classList.add("is-editing");
+    syncPatternOverlay(input, input.value);
+  });
+
+  elements.rulesList?.addEventListener("focusout", (event) => {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement) || input.dataset.overlayInput !== "true") {
+      return;
+    }
+
+    const shell = input.closest(".input-overlay-shell");
+    if (!(shell instanceof HTMLDivElement)) {
+      return;
+    }
+
+    shell.classList.remove("is-editing");
+    syncPatternOverlay(input, input.value);
   });
 
   elements.rulesList?.addEventListener("click", (event) => {
@@ -1056,8 +1091,15 @@ function getPlaceholderSortKey(name) {
 function createDefaultRules(language) {
   if (language === "en") {
     return [
-      { id: crypto.randomUUID(), template: "Fig\\.{t1}-{n}", starts: createRuleStarts() },
-      { id: crypto.randomUUID(), template: "Table{t1}-{n}", starts: createRuleStarts() },
+      { id: crypto.randomUUID(), matchPattern: "Fig\\.(\\d+)-(\\d+)", renumberPattern: "Fig\\.{t1}-{n}", starts: createRuleStarts() },
+      { id: crypto.randomUUID(), matchPattern: "Table(\\d+)-(\\d+)", renumberPattern: "Table{t1}-{n}", starts: createRuleStarts() },
+    ];
+  }
+
+  if (language === "zh") {
+    return [
+      { id: crypto.randomUUID(), matchPattern: "\u56fe(\\d+)-(\\d+)", renumberPattern: "\u56fe{t1}-{n}", starts: createRuleStarts() },
+      { id: crypto.randomUUID(), matchPattern: "\u8868(\\d+)-(\\d+)", renumberPattern: "\u8868{t1}-{n}", starts: createRuleStarts() },
     ];
   }
 
@@ -1070,7 +1112,8 @@ function createDefaultRules(language) {
 function createEmptyRule() {
   return {
     id: crypto.randomUUID(),
-    template: "",
+    matchPattern: "",
+    renumberPattern: "",
     starts: createRuleStarts(),
   };
 }
@@ -1090,7 +1133,8 @@ function areRulesUsingDefaultTemplates(rules, language) {
 
 function normalizeRuleForCompare(rule) {
   return {
-    template: rule.template ?? "",
+    matchPattern: rule.matchPattern ?? "",
+    renumberPattern: rule.renumberPattern ?? "",
     starts: normalizeRuleStarts(rule.starts),
   };
 }
@@ -1266,30 +1310,62 @@ function renderRules() {
   elements.rulesList.innerHTML = state.rules
     .map((rule, index) => {
       const startFields = renderPlaceholderStartFields(rule);
+      const matchLabel = state.language === "en" ? "Match pattern" : "匹配规则";
+      const renumberLabel = state.language === "en" ? "Renumber pattern" : "重编号规则";
+      const matchPlaceholder =
+        state.language === "en"
+          ? "Example: Fig\\.(\\d+)-(\\d+) or Table(\\d+)"
+          : "例如：图(\\d+)-(\\d+) 或 表(\\d+)";
+      const renumberPlaceholder =
+        state.language === "en"
+          ? "Example: Fig\\.{t1}-{n} or Table{n}"
+          : "例如：图{t1}-{n} 或 表{n}";
+
       return `
         <article class="rule-card" data-rule-id="${escapeHtml(rule.id)}">
-          <div class="field field--full">
-            <label for="template-${escapeHtml(rule.id)}">${escapeHtml(t("ruleLabel"))} ${index + 1}</label>
-            <div class="input-overlay-shell">
-              <div class="input-overlay" aria-hidden="true">${renderPatternOverlay(rule.template)}</div>
-              <input
-                id="template-${escapeHtml(rule.id)}"
-                name="template"
-                type="text"
-                placeholder="${escapeHtml(t("rulePlaceholder"))}"
-                value="${escapeHtml(rule.template)}"
-                autocomplete="off"
-                spellcheck="false"
-              />
+          <div class="rule-card__patterns field--full">
+            <div class="field">
+              <label for="match-pattern-${escapeHtml(rule.id)}">${escapeHtml(matchLabel)} ${index + 1}</label>
+              <div class="input-overlay-shell">
+                <div class="input-overlay" aria-hidden="true">${renderPatternOverlay(rule.matchPattern ?? "")}</div>
+                <input
+                  id="match-pattern-${escapeHtml(rule.id)}"
+                  name="matchPattern"
+                  type="text"
+                  placeholder="${escapeHtml(matchPlaceholder)}"
+                  value="${escapeHtml(rule.matchPattern ?? "")}"
+                  autocomplete="off"
+                  spellcheck="false"
+                  data-overlay-input="true"
+                />
+              </div>
+            </div>
+            <div class="field">
+              <label for="renumber-pattern-${escapeHtml(rule.id)}">${escapeHtml(renumberLabel)} ${index + 1}</label>
+              <div class="input-overlay-shell">
+                <div class="input-overlay" aria-hidden="true">${renderPatternOverlay(rule.renumberPattern ?? "")}</div>
+                <input
+                  id="renumber-pattern-${escapeHtml(rule.id)}"
+                  name="renumberPattern"
+                  type="text"
+                  placeholder="${escapeHtml(renumberPlaceholder)}"
+                  value="${escapeHtml(rule.renumberPattern ?? "")}"
+                  autocomplete="off"
+                  spellcheck="false"
+                  data-overlay-input="true"
+                />
+              </div>
             </div>
           </div>
           <div class="field field--full ${startFields ? "" : "is-hidden"}" data-role="placeholder-starts">
             <label>${escapeHtml(t("placeholderStartsLabel"))}</label>
             <div class="rule-starts">${startFields}</div>
           </div>
-          <button class="button button--danger" type="button" data-action="remove-rule">
-            ${escapeHtml(t("removeRule"))}
-          </button>
+          <div class="rule-card__actions">
+            <button class="button button--danger" type="button" data-action="remove-rule">
+              ${escapeHtml(t("removeRule"))}
+            </button>
+          </div>
         </article>
       `;
     })
@@ -1297,7 +1373,7 @@ function renderRules() {
 }
 
 function renderPlaceholderStartFields(rule) {
-  const placeholders = getRulePlaceholderNames(rule.template);
+  const placeholders = getRulePlaceholderNames(rule.renumberPattern);
   return placeholders.map((placeholder) => renderPlaceholderStartField(rule, placeholder)).join("");
 }
 
@@ -1622,17 +1698,22 @@ function compileRules(rules) {
   const cleaned = rules
     .map((rule) => ({
       ...rule,
-      template: String(rule.template ?? "").trim(),
+      matchPattern: String(rule.matchPattern ?? "").trim(),
+      renumberPattern: String(rule.renumberPattern ?? "").trim(),
       starts: normalizeRuleStarts(rule.starts),
     }))
-    .filter((rule) => rule.template);
+    .filter((rule) => rule.matchPattern || rule.renumberPattern);
 
   if (cleaned.length === 0) {
     throw new Error(t("keepOneRule"));
   }
 
   return cleaned.map((rule) => {
-    const placeholders = extractPlaceholders(rule.template);
+    if (!rule.matchPattern || !rule.renumberPattern) {
+      throw new Error(state.language === "en" ? "Each rule needs both patterns." : "每条规则都需要同时填写匹配规则和重编号规则。");
+    }
+
+    const placeholders = extractPlaceholders(rule.renumberPattern);
     const counts = new Map();
 
     for (const placeholder of placeholders) {
@@ -1640,7 +1721,7 @@ function compileRules(rules) {
       if (!getPlaceholderMeta(placeholder.name)) {
         throw new Error(
           t("unsupportedPlaceholderError", {
-            rule: rule.template,
+            rule: rule.renumberPattern,
             placeholder: `{${placeholder.name}}`,
           }),
         );
@@ -1648,26 +1729,34 @@ function compileRules(rules) {
     }
 
     if ((counts.get("n") ?? 0) === 0) {
-      throw new Error(t("missingPlaceholderError", { rule: rule.template }));
+      throw new Error(t("missingPlaceholderError", { rule: rule.renumberPattern }));
     }
 
     for (const [name, count] of counts.entries()) {
       if (count > 1) {
         throw new Error(
           t("duplicatePlaceholderError", {
-            rule: rule.template,
+            rule: rule.renumberPattern,
             placeholder: `{${name}}`,
           }),
         );
       }
     }
 
-    const regexBody = buildRuleRegex(rule.template, placeholders);
     let regex;
     try {
-      regex = new RegExp(regexBody, "dgu");
+      regex = new RegExp(rule.matchPattern, "dgu");
     } catch {
-      throw new Error(t("invalidRegexError", { rule: rule.template }));
+      throw new Error(t("invalidRegexError", { rule: rule.matchPattern }));
+    }
+
+    const captureGroupCount = countCapturingGroups(rule.matchPattern);
+    if (captureGroupCount < placeholders.length) {
+      throw new Error(
+        state.language === "en"
+          ? `Match pattern "${rule.matchPattern}" needs at least ${placeholders.length} capturing groups.`
+          : `匹配规则“${rule.matchPattern}”里至少需要有 ${placeholders.length} 个捕获组。`,
+      );
     }
 
     const headingPlaceholders = placeholders
@@ -1677,6 +1766,7 @@ function compileRules(rules) {
     return {
       ...rule,
       regex,
+      captureGroupOffset: captureGroupCount - placeholders.length,
       placeholders,
       placeholderOrder: placeholders.map((item) => item.name),
       headingPlaceholders,
@@ -1686,7 +1776,6 @@ function compileRules(rules) {
 
 function extractPlaceholders(template) {
   const result = [];
-  let slotIndex = 0;
 
   for (const match of template.matchAll(/\{([a-z]\d*)\}/g)) {
     result.push({
@@ -1694,25 +1783,54 @@ function extractPlaceholders(template) {
       raw: match[0],
       index: match.index ?? 0,
       length: match[0].length,
-      groupName: `slot_${slotIndex}`,
     });
-    slotIndex += 1;
   }
 
   return result;
 }
 
-function buildRuleRegex(template, placeholders) {
-  let cursor = 0;
-  let result = "";
+function countCapturingGroups(pattern) {
+  let count = 0;
+  let escaped = false;
+  let inCharClass = false;
 
-  for (const placeholder of placeholders) {
-    result += template.slice(cursor, placeholder.index);
-    result += `(?<${placeholder.groupName}>\\d+)`;
-    cursor = placeholder.index + placeholder.length;
+  for (let index = 0; index < pattern.length; index += 1) {
+    const char = pattern[index];
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+
+    if (char === "\\") {
+      escaped = true;
+      continue;
+    }
+
+    if (inCharClass) {
+      if (char === "]") {
+        inCharClass = false;
+      }
+      continue;
+    }
+
+    if (char === "[") {
+      inCharClass = true;
+      continue;
+    }
+
+    if (char !== "(") {
+      continue;
+    }
+
+    if (pattern[index + 1] === "?") {
+      continue;
+    }
+
+    count += 1;
   }
 
-  return result + template.slice(cursor);
+  return count;
 }
 
 function collectParagraphs(xmlDoc, partName, startOrder) {
@@ -2172,9 +2290,11 @@ function selectCandidates(fullText, compiledRules) {
     for (const match of fullText.matchAll(rule.regex)) {
       const start = match.index ?? 0;
       const placeholders = {};
+      const captureGroupOffset = rule.captureGroupOffset ?? 0;
 
-      for (const placeholder of rule.placeholders) {
-        const indices = match.indices?.groups?.[placeholder.groupName];
+      for (const [index, placeholder] of rule.placeholders.entries()) {
+        const groupIndex = captureGroupOffset + index + 1;
+        const indices = match.indices?.[groupIndex];
         if (!indices) {
           continue;
         }
@@ -2183,11 +2303,11 @@ function selectCandidates(fullText, compiledRules) {
           name: placeholder.name,
           start: indices[0],
           end: indices[1],
-          value: match.groups?.[placeholder.groupName] ?? fullText.slice(indices[0], indices[1]),
+          value: match[groupIndex] ?? fullText.slice(indices[0], indices[1]),
         };
       }
 
-      if (!placeholders.n) {
+      if (Object.keys(placeholders).length !== rule.placeholderOrder.length) {
         continue;
       }
 
@@ -2197,8 +2317,6 @@ function selectCandidates(fullText, compiledRules) {
         end: start + match[0].length,
         text: match[0],
         placeholders,
-        renumberStart: placeholders.n.start,
-        renumberEnd: placeholders.n.end,
       };
 
       const list = byStart.get(start) ?? [];
@@ -2264,24 +2382,8 @@ function renumberCaption(candidate, counters) {
   counters.set(counterKey, nextValue + 1);
   resolvedPlaceholders.n = String(nextValue);
 
-  const replacements = candidate.rule.placeholderOrder
-    .map((placeholder) => {
-      const span = candidate.placeholders[placeholder];
-      if (!span) {
-        return null;
-      }
-
-      const value =
-        placeholder === "n"
-          ? resolvedPlaceholders.n
-          : resolvedPlaceholders[placeholder] ?? candidate.placeholders[placeholder]?.value ?? "";
-
-      return { start: span.start, end: span.end, value };
-    })
-    .filter(Boolean);
-
   return {
-    newText: applyCandidateReplacements(candidate, replacements),
+    newText: buildRenumberedText(candidate, resolvedPlaceholders),
     placeholderFallbacks,
     resolvedPlaceholders,
   };
@@ -2301,16 +2403,17 @@ function resolveHeadingPlaceholder(candidate, placeholder) {
   return heading.sequence + candidate.rule.starts[placeholder] - 1;
 }
 
-function applyCandidateReplacements(candidate, replacements) {
-  let result = candidate.text;
+function buildRenumberedText(candidate, resolvedPlaceholders) {
+  let cursor = 0;
+  let result = "";
 
-  for (const replacement of [...replacements].sort((left, right) => right.start - left.start)) {
-    const localStart = replacement.start - candidate.start;
-    const localEnd = replacement.end - candidate.start;
-    result = result.slice(0, localStart) + replacement.value + result.slice(localEnd);
+  for (const placeholder of candidate.rule.placeholders) {
+    result += candidate.rule.renumberPattern.slice(cursor, placeholder.index);
+    result += resolvedPlaceholders?.[placeholder.name] ?? candidate.placeholders[placeholder.name]?.value ?? "";
+    cursor = placeholder.index + placeholder.length;
   }
 
-  return result;
+  return result + candidate.rule.renumberPattern.slice(cursor);
 }
 
 function resolveReferenceTarget(reference, mapped) {
@@ -2671,15 +2774,15 @@ function makeMappingKey(ruleId, originalText) {
 }
 
 function renderPatternOverlay(pattern) {
-  return renderPatternTokens(pattern, { mode: "overlay" });
+  return renderPatternTokens(pattern, { mode: "overlay", allowPlaceholders: true });
 }
 
 function renderPatternInline(pattern) {
-  return renderPatternTokens(pattern, { mode: "inline" });
+  return renderPatternTokens(pattern, { mode: "inline", allowPlaceholders: true });
 }
 
-function renderPatternTokens(pattern, { mode }) {
-  const tokens = tokenizePattern(pattern);
+function renderPatternTokens(pattern, { mode, allowPlaceholders }) {
+  const tokens = tokenizePattern(pattern, { allowPlaceholders });
   return tokens
     .map((token) => {
       if (mode === "inline") {
@@ -2750,9 +2853,13 @@ function getPlaceholderVisual(name) {
   };
 }
 
-function tokenizePattern(pattern) {
+function tokenizePattern(pattern, { allowPlaceholders } = {}) {
   if (!pattern) {
     return [];
+  }
+
+  if (!allowPlaceholders) {
+    return tokenizeRegexAndLiteral(pattern);
   }
 
   const tokens = [];
@@ -2799,6 +2906,11 @@ function syncPatternOverlay(input, pattern) {
   const shell = input.closest(".input-overlay-shell");
   const overlay = shell?.querySelector(".input-overlay");
   if (!(overlay instanceof HTMLDivElement)) {
+    return;
+  }
+
+  if (shell?.classList.contains("is-editing")) {
+    overlay.innerHTML = "";
     return;
   }
 
