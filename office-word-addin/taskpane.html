@@ -1,0 +1,375 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WordNumHelper Office Add-in</title>
+  <meta name="description" content="在 Word 任务窗格中扫描、重排图表编号，并同步正文引用。" />
+  <link rel="icon" href="./assets/freshman.jpg" />
+  <link rel="stylesheet" href="./styles.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script defer src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <script defer src="./app.js"></script>
+  <script defer src="./office-bridge.js"></script>
+</head>
+
+<body>
+  <div class="ambient ambient--one"></div>
+  <div class="ambient ambient--two"></div>
+
+  <div class="page-shell page-shell--addon">
+    <header class="topbar topbar--addon">
+      <div class="brand">
+        <span class="brand__mark">WN</span>
+        <div>
+          <strong>WordNumHelper</strong>
+          <p id="brandSubtitle">Word 图表编号整理工具</p>
+        </div>
+      </div>
+
+      <div class="topbar__meta">
+        <span id="sourceModeBadge" class="chip chip--soft source-mode-badge">未载入文档</span>
+        <div class="lang-toggle" role="group" aria-label="Language">
+          <button id="langZhButton" class="lang-toggle__button is-active" type="button">中文</button>
+          <button id="langEnButton" class="lang-toggle__button" type="button">EN</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="workspace workspace--addon">
+      <section class="addon-hero">
+        <article class="card addon-hero__panel addon-hero__panel--intro">
+          <p class="card__eyebrow" id="heroEyebrow">Production-ready workflow</p>
+          <h1 id="heroTitle">Word 图表编号整理助手</h1>
+          <p id="heroLead" class="muted addon-hero__lead">
+            上传 `.docx` 后，帮你给杂乱的图表编号重新编号。
+          </p>
+
+          <div class="addon-pill-row">
+            <span id="heroTag1" class="chip">只替换命中的图表标号</span>
+            <span id="heroTag2" class="chip">正文引用自动同步</span>
+            <span id="heroTag3" class="chip">规则输入实时高亮</span>
+            <span id="heroTag4" class="chip">支持动态 `{t数字}` 标题映射</span>
+          </div>
+        </article>
+
+        <article class="card addon-hero__panel addon-hero__panel--workflow">
+          <p class="card__eyebrow" id="workflowEyebrow">Workflow</p>
+          <h2 id="workflowTitle">三步完成处理</h2>
+
+          <div class="addon-metric-grid">
+            <article class="metric addon-metric">
+              <span class="metric__label" id="metric1Label">01 上传文档</span>
+              <strong id="metric1Value">导入一个 `.docx` 文件</strong>
+            </article>
+            <article class="metric addon-metric">
+              <span class="metric__label" id="metric2Label">02 设置规则</span>
+              <strong id="metric2Value">组合正则片段、`{t数字}` 与 `{n}`</strong>
+            </article>
+            <article class="metric addon-metric">
+              <span class="metric__label" id="metric3Label">03 导出结果</span>
+              <strong id="metric3Value">预览映射后下载修正文档</strong>
+            </article>
+          </div>
+        </article>
+      </section>
+
+      <section class="card card--section card--source">
+        <div class="card__header">
+          <div>
+            <p class="card__eyebrow" id="step1Eyebrow">Step 1</p>
+            <h2 id="step1Title">上传 Word 文件</h2>
+          </div>
+          <span class="chip" id="docxOnlyChip">仅支持 .docx</span>
+        </div>
+
+        <p id="sourceHint" class="muted">
+          你可以先读取当前 Word 文档，也可以上传一个 DOCX 作为回退方案。
+        </p>
+
+        <div class="office-actions">
+          <button id="loadCurrentDocumentButton" class="button" type="button">读取当前 Word 文档</button>
+          <button id="applyToCurrentDocumentButton" class="button button--secondary" type="button" disabled>
+            写回当前文档
+          </button>
+        </div>
+
+        <div id="officeAvailability" class="status status--subtle">正在检测 Word 宿主环境…</div>
+
+        <div class="source-grid">
+          <label class="upload" for="docxFile">
+            <input id="docxFile" type="file" accept=".docx" />
+            <span class="upload__title" id="uploadTitle">选择或拖入一个 `.docx` 文件</span>
+            <span class="upload__hint" id="uploadHint">文件只会在浏览器本地解析</span>
+            <span id="fileMeta" class="upload__meta">还没有选择文件</span>
+          </label>
+
+          <div class="document-meta-grid">
+            <article class="document-meta">
+              <span class="document-meta__label" id="documentPagesLabel">文档总页数</span>
+              <strong id="documentPagesValue">上传后自动读取</strong>
+              <p class="muted document-meta__hint" id="documentPagesHint">
+                上传后会先快速读取页数，再根据总页数校验扫描范围。
+              </p>
+            </article>
+
+            <article class="document-meta document-meta--accent">
+              <span class="document-meta__label">宿主环境</span>
+              <strong id="officeEnvironmentValue">等待检测</strong>
+              <p id="officeEnvironmentHint" class="muted document-meta__hint">
+                桌面版 Word 支持直接读取与写回，网页版可继续使用上传回退。
+              </p>
+            </article>
+          </div>
+        </div>
+
+        <div id="documentScopePanel" class="scan-options is-hidden">
+          <label class="option-toggle" for="enablePageRange">
+            <input id="enablePageRange" type="checkbox" />
+            <span class="option-toggle__body">
+              <span id="pageRangeToggleLabel" class="option-toggle__title">按页码范围扫描</span>
+              <span id="pageRangeToggleHint" class="option-toggle__hint">
+                默认关闭。开启后，只识别和编号指定页码范围内的内容。
+              </span>
+            </span>
+          </label>
+
+          <section id="pageRangeSection" class="scan-range is-hidden" aria-labelledby="pageRangeTitle">
+            <div class="scan-range__header">
+              <span id="pageRangeTitle" class="option-toggle__title">页码范围</span>
+              <span id="pageRangeHint" class="option-toggle__hint">
+                开启后只扫描所填页码；如果文档缺少分页标记，结果可能需要人工复核。
+              </span>
+            </div>
+
+            <div class="scan-range__grid">
+              <div class="field">
+                <label id="pageRangeStartLabel" for="pageRangeStart">起始页</label>
+                <input id="pageRangeStart" type="number" min="1" inputmode="numeric" />
+              </div>
+
+              <div class="field">
+                <label id="pageRangeEndLabel" for="pageRangeEnd">结束页</label>
+                <input id="pageRangeEnd" type="number" min="1" inputmode="numeric" />
+              </div>
+            </div>
+          </section>
+
+          <label class="option-toggle" for="enableTextHeadingInference">
+            <input id="enableTextHeadingInference" type="checkbox" />
+            <span class="option-toggle__body">
+              <span id="headingInferenceLabel" class="option-toggle__title">允许按文本猜测标题级别</span>
+              <span id="headingInferenceHint" class="option-toggle__hint">
+                只有文档没有真正使用 Word 标题样式时再开启。
+              </span>
+            </span>
+          </label>
+        </div>
+      </section>
+
+      <section class="card card--section">
+        <div class="card__header">
+          <div>
+            <p class="card__eyebrow" id="step2Eyebrow">Step 2</p>
+            <h2 id="step2Title">设置图表标注规则</h2>
+          </div>
+
+          <div class="header-actions">
+            <button id="regexHelpButton" class="button button--ghost" type="button">
+              <span id="regexHelpButtonText">规则说明</span>
+            </button>
+            <button id="addRuleButton" class="button button--ghost" type="button">
+              <span id="addRuleButtonText">新增规则</span>
+            </button>
+          </div>
+        </div>
+
+        <p class="muted" id="rulesDescriptionPrimary">
+          规则里只有大括号占位符会参与自动重排：<code>{n}</code> 表示递增编号，<code>{t数字}</code>
+          表示按对应级别标题自动编号。
+        </p>
+        <p class="muted" id="rulesDescriptionSecondary">
+          例如 <code>图{t1}-{n}</code> 会把图号前半段按当前一级标题自动改写。
+        </p>
+
+        <div class="pattern-legend" aria-hidden="true">
+          <span class="pattern-chip pattern-chip--regex" id="patternLegendRegex">正则匹配部分</span>
+          <span class="pattern-chip pattern-chip--renumber" id="patternLegendRenumber">{n} 递增编号</span>
+          <span class="pattern-chip pattern-chip--heading" id="patternLegendHeading">{t数字} 标题编号</span>
+        </div>
+
+        <div id="rulesList" class="rules-list" aria-live="polite"></div>
+      </section>
+
+      <div class="addon-action-grid">
+        <section class="card card--action">
+          <div class="card__header">
+            <div>
+              <p class="card__eyebrow" id="step3Eyebrow">Step 3</p>
+              <h2 id="step3Title">扫描与导出</h2>
+            </div>
+          </div>
+
+          <p class="muted" id="scanDescription">
+            先扫描确认标题映射和正文引用变化，再导出修正后的 DOCX。
+          </p>
+
+          <div class="action-row action-row--stack">
+            <button id="analyzeButton" class="button" type="button">
+              <span id="analyzeButtonText">扫描并预览</span>
+            </button>
+            <button id="downloadButton" class="button button--secondary" type="button" disabled>
+              <span id="downloadButtonText">下载修正后的 DOCX</span>
+            </button>
+          </div>
+
+          <p id="officeActionNote" class="muted action-note">
+            当前未连接 Word 宿主，暂时只能下载修正后的 DOCX。
+          </p>
+
+          <div id="statusBox" class="status" role="status" aria-live="polite">等待上传文档。</div>
+        </section>
+
+        <section class="card card--compact">
+          <div class="card__header">
+            <div>
+              <p class="card__eyebrow" id="recognitionEyebrow">识别逻辑</p>
+              <h2 id="recognitionTitle">如何区分标题与正文引用</h2>
+            </div>
+          </div>
+
+          <ul class="feature-list">
+            <li id="feature1">段首且边界更像标题的内容，会优先视为真正的图表标题。</li>
+            <li id="feature2">像“如图3-1所示”这类紧挨正文的内容，会作为正文引用同步更新。</li>
+            <li id="feature3">当规则里出现 `{t数字}` 时，会按对应级别标题的出现顺序自动编号。</li>
+          </ul>
+        </section>
+      </div>
+
+      <section class="card card--results">
+        <div class="card__header">
+          <div>
+            <p class="card__eyebrow" id="resultsEyebrow">结果</p>
+            <h2 id="resultsTitle">识别到的图表编号与引用</h2>
+          </div>
+        </div>
+
+        <div class="summary-grid">
+          <article class="summary-tile">
+            <span class="summary-tile__label" id="captionsSummaryLabel">图表编号</span>
+            <strong id="captionsCount">0</strong>
+          </article>
+          <article class="summary-tile">
+            <span class="summary-tile__label" id="referencesSummaryLabel">同步引用</span>
+            <strong id="referencesCount">0</strong>
+          </article>
+          <article class="summary-tile">
+            <span class="summary-tile__label" id="warningsSummaryLabel">需要留意</span>
+            <strong id="warningsCount">0</strong>
+          </article>
+        </div>
+
+        <section class="heading-review-panel">
+          <div class="heading-review-panel__header">
+            <div>
+              <h3 id="headingReviewTitle">识别到的标题</h3>
+              <p id="headingReviewDescription" class="muted">
+                按规则中出现的 {t数字} 分组显示，方便核对标题识别是否正确。
+              </p>
+            </div>
+            <button id="resetHeadingFiltersButton" class="button button--ghost is-hidden" type="button">
+              恢复全部标题
+            </button>
+          </div>
+
+          <div id="headingReviewList" class="heading-review-list">
+            <div class="heading-review-empty">当前规则还没有使用标题占位符。</div>
+          </div>
+        </section>
+
+        <div class="results-grid">
+          <details class="results-panel" open>
+            <summary class="results-panel__summary">
+              <h3 id="captionsSectionTitle">标题重编号</h3>
+              <span id="captionsPanelHint" class="results-panel__hint">点击展开或收起</span>
+            </summary>
+
+            <div class="table-wrap">
+              <table class="results-table">
+                <thead>
+                  <tr>
+                    <th id="thCaptionOriginal">原标号</th>
+                    <th id="thCaptionNew">新标号</th>
+                    <th id="thCaptionExcerpt">段落内容</th>
+                  </tr>
+                </thead>
+                <tbody id="captionsTableBody">
+                  <tr>
+                    <td colspan="3" class="empty-row">还没有识别到图表标题。</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
+
+          <details class="results-panel" open>
+            <summary class="results-panel__summary">
+              <h3 id="referencesSectionTitle">正文引用同步</h3>
+              <span id="referencesPanelHint" class="results-panel__hint">点击展开或收起</span>
+            </summary>
+
+            <div class="table-wrap">
+              <table class="results-table">
+                <thead>
+                  <tr>
+                    <th id="thReferenceOriginal">原引用</th>
+                    <th id="thReferenceNew">新引用</th>
+                    <th id="thReferenceExcerpt">段落内容</th>
+                  </tr>
+                </thead>
+                <tbody id="referencesTableBody">
+                  <tr>
+                    <td colspan="3" class="empty-row">还没有识别到需要同步的正文引用。</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
+        </div>
+
+        <section class="heading-review-panel heading-review-panel--warnings">
+          <div class="heading-review-panel__header">
+            <div>
+              <h3 id="warningsTitle">提示</h3>
+            </div>
+          </div>
+
+          <ul id="warningsList" class="warnings-list">
+            <li>没有额外提示。</li>
+          </ul>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <div id="helpDialog" class="modal" hidden>
+    <div id="helpDialogBackdrop" class="modal__backdrop"></div>
+    <div class="modal__panel">
+      <div class="modal__header">
+        <div>
+          <p class="card__eyebrow" id="helpEyebrow">规则说明</p>
+          <h2 id="helpDialogTitle">图表规则怎么写</h2>
+        </div>
+
+        <button id="closeHelpButton" class="button button--ghost" type="button">
+          <span id="closeHelpButtonText">关闭</span>
+        </button>
+      </div>
+
+      <div id="helpDialogBody" class="modal__content"></div>
+    </div>
+  </div>
+</body>
+
+</html>

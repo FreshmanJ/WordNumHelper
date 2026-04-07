@@ -1,0 +1,8 @@
+﻿{
+  "name": "wordnumhelper-office-word-addin",
+  "private": true,
+  "description": "Office task pane version of WordNumHelper.",
+  "scripts": {
+    "check": "node --check app.js && node --check office-bridge.js && node --check commands.js"
+  }
+}
