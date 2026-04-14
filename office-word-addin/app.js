@@ -16,7 +16,7 @@ const TRANSLATIONS = {
     metaLocal: "本地处理",
     metaSafeExport: "安全导出 DOCX",
     heroEyebrow: "Production-ready workflow",
-    heroTitle: "Word 图表编号整理助手",
+    heroTitle: "Word 图表重编号助手",
     heroLead: "上传 `.docx` 后，帮你给杂乱的图表编号重新编号。",
     heroFlowStage1Title: "原文档标号混乱",
     heroFlowStage1Text: "图表编号前后跳号，正文引用也跟着变乱",

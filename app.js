@@ -16,7 +16,7 @@ const TRANSLATIONS = {
     metaLocal: "本地处理",
     metaSafeExport: "安全导出 DOCX",
     heroEyebrow: "Production-ready workflow",
-    heroTitle: "Word 图表编号整理助手",
+    heroTitle: "Word 图表重编号助手",
     heroLead: "上传 `.docx` 后，帮你给杂乱的图表编号重新编号。",
     heroFlowStage1Title: "原文档标号混乱",
     heroFlowStage1Text: "图表编号前后跳号，正文引用也跟着变乱",
@@ -60,16 +60,6 @@ const TRANSLATIONS = {
     headingInferenceLabel: "允许按文本猜测标题级别",
     headingInferenceHint:
       "默认只信任 Word 标题样式或大纲级别。只有旧文档没套用这些设置时再开启，否则可能把 `1.` 或 `1.1` 这类正文误判为标题。",
-    pageRangeToggleLabel: "按页码范围扫描",
-    pageRangeToggleHint:
-      "默认关闭。开启后，只识别和编号指定页码范围内的内容。",
-    pageRangeTitle: "页码范围",
-    pageRangeHint:
-      "开启后只扫描所填页码；如果文档缺少分页标记，结果可能需要人工复核。",
-    pageRangeStartLabel: "起始页",
-    pageRangeEndLabel: "结束页",
-    pageRangeStartPlaceholder: "例如 3",
-    pageRangeEndPlaceholder: "例如 12",
     documentPagesLabel: "文档总页数",
     documentPagesHint: "上传后会先快速读取页数，再根据总页数校验扫描范围。",
     documentPagesValuePending: "上传后自动读取",
@@ -142,13 +132,20 @@ const TRANSLATIONS = {
     emptyCaptionsRow: "还没有识别到图表标题。",
     emptyReferencesRow: "还没有识别到需要同步的正文引用。",
     emptyParagraph: "(空段落)",
-    invalidPageRange: "页码范围无效。请填写大于 0 且不超过文档总页数的页码，并保证起始页不大于结束页。",
-    pageRangeUnavailable:
-      "当前文档缺少可用于定位页面边界的分页标记，无法可靠按页码范围筛选。请先在 Word 中更新分页后再试，或关闭页码范围。",
-    pageRangeWarningNoMarkers:
-      "当前文档缺少可用的分页标记。已显示的总页数只能作为近似参考，请对结果进行人工复核。",
-    pageRangeWarningUnmapped:
-      "页码范围过滤只作用于主文档正文。{count} 处来自页眉、页脚、注释或批注的命中项已被跳过。",
+    customRangeToggleLabel: "启用自定义范围",
+    customRangeToggleHint: "默认关闭。开启后，只对开始标记和结束标记之间的内容进行识别和编号。",
+    customRangeTitle: "自定义范围",
+    customRangeHint: "分别粘贴两段在正文中只出现一次的内容，作为开始位置和结束位置。输入后不会自动扫描，点击“扫描并预览”时才会校验。",
+    customRangeStartLabel: "开始标记",
+    customRangeEndLabel: "结束标记",
+    customRangeStartPlaceholder: "粘贴一段只出现一次的开始位置内容",
+    customRangeEndPlaceholder: "粘贴一段只出现一次的结束位置内容",
+    customRangeStartNotFound: "没有在文档正文中找到开始标记内容，或者是标记出现了多次（建议唯一）。",
+    customRangeEndNotFound: "没有在文档正文中找到结束标记内容，或者是标记出现了多次（建议唯一）。",
+    customRangeMarkerAmbiguous: "标记内容“{text}”在文档中出现了多次，为了准确起见，请使用唯一的内容作为标记。",
+    customRangeMarkersInverted: "开始标记在文档中的位置晚于结束标记，请检查输入是否正确。",
+    customRangeLabel: "自定义范围内容",
+    customRangeValue: "从第 {start} 段到第 {end} 段",
     outputFileSuffix: "-renumbered",
   },
   en: {
@@ -201,16 +198,6 @@ const TRANSLATIONS = {
     headingInferenceLabel: "Allow text-based heading inference",
     headingInferenceHint:
       "Off by default. Turn this on only for older documents that do not use real Word heading styles or outline levels, because plain text like `1.` or `1.1` may be misread as headings.",
-    pageRangeToggleLabel: "Limit by page range",
-    pageRangeToggleHint:
-      "Off by default. Turn it on to detect and renumber only inside the selected pages.",
-    pageRangeTitle: "Page Range",
-    pageRangeHint:
-      "When enabled, only the selected pages are scanned. If the document lacks pagination markers, review the result manually.",
-    pageRangeStartLabel: "From page",
-    pageRangeEndLabel: "To page",
-    pageRangeStartPlaceholder: "For example 3",
-    pageRangeEndPlaceholder: "For example 12",
     documentPagesLabel: "Document pages",
     documentPagesHint: "After upload, the app reads the page count first and validates the scan range against the total pages.",
     documentPagesValuePending: "Read after upload",
@@ -283,14 +270,20 @@ const TRANSLATIONS = {
     emptyCaptionsRow: "No captions were detected.",
     emptyReferencesRow: "No references needed syncing.",
     emptyParagraph: "(empty paragraph)",
-    invalidPageRange:
-      "The page range is invalid. Use values greater than 0, keep them within the detected document page count, and make sure the start page is not greater than the end page.",
-    pageRangeUnavailable:
-      "This document does not contain pagination markers that can locate real page boundaries, so page-range filtering cannot be applied reliably. Update pagination in Word first or turn page-range filtering off.",
-    pageRangeWarningNoMarkers:
-      "This document does not contain enough saved pagination markers. The detected page count is best-effort only, so please review the filtered result manually.",
-    pageRangeWarningUnmapped:
-      "Page-range filtering applies only to the main document body. {count} matches from headers, footers, notes, or comments were skipped.",
+    customRangeToggleLabel: "Enable custom range",
+    customRangeToggleHint: "Off by default. When enabled, only content between the start and end markers is renumbered.",
+    customRangeTitle: "Custom Range",
+    customRangeHint: "Paste two unique text snippets from your document to define the start and end positions. These are validated when you click 'Scan and Preview'.",
+    customRangeStartLabel: "Start marker",
+    customRangeEndLabel: "End marker",
+    customRangeStartPlaceholder: "Paste a unique snippet for the start position",
+    customRangeEndPlaceholder: "Paste a unique snippet for the end position",
+    customRangeStartNotFound: "Start marker not found in the main document, or it is not unique.",
+    customRangeEndNotFound: "End marker not found in the main document, or it is not unique.",
+    customRangeMarkerAmbiguous: "Marker '{text}' is not unique in the document. Please use a unique snippet.",
+    customRangeMarkersInverted: "The start marker appears after the end marker. Please check your input.",
+    customRangeLabel: "Custom range scope",
+    customRangeValue: "Paragraph {start} to {end}",
     outputFileSuffix: "-renumbered",
   },
 };
@@ -387,9 +380,9 @@ const state = {
   file: null,
   language: loadInitialLanguage(),
   allowTextHeadingInference: loadInitialTextHeadingInference(),
-  enablePageRange: loadInitialPageRangeEnabled(),
-  pageRangeStart: loadInitialPageRangeValue("wnh-page-range-start"),
-  pageRangeEnd: loadInitialPageRangeValue("wnh-page-range-end"),
+  enableCustomRange: loadInitialCustomRangeEnabled(),
+  customRangeStart: loadInitialCustomRangeValue("wnh-custom-range-start"),
+  customRangeEnd: loadInitialCustomRangeValue("wnh-custom-range-end"),
   documentPageCount: null,
   documentPageCountState: "idle",
   rules: createDefaultRules(loadInitialLanguage()),
@@ -476,16 +469,16 @@ const elements = {
   headingInferenceCheckbox: document.getElementById("enableTextHeadingInference"),
   headingInferenceLabel: document.getElementById("headingInferenceLabel"),
   headingInferenceHint: document.getElementById("headingInferenceHint"),
-  pageRangeToggleCheckbox: document.getElementById("enablePageRange"),
-  pageRangeToggleLabel: document.getElementById("pageRangeToggleLabel"),
-  pageRangeToggleHint: document.getElementById("pageRangeToggleHint"),
-  pageRangeSection: document.getElementById("pageRangeSection"),
-  pageRangeTitle: document.getElementById("pageRangeTitle"),
-  pageRangeHint: document.getElementById("pageRangeHint"),
-  pageRangeStartLabel: document.getElementById("pageRangeStartLabel"),
-  pageRangeEndLabel: document.getElementById("pageRangeEndLabel"),
-  pageRangeStartInput: document.getElementById("pageRangeStart"),
-  pageRangeEndInput: document.getElementById("pageRangeEnd"),
+  customRangeToggleCheckbox: document.getElementById("enableCustomRange"),
+  customRangeToggleLabel: document.getElementById("customRangeToggleLabel"),
+  customRangeToggleHint: document.getElementById("customRangeToggleHint"),
+  customRangeSection: document.getElementById("customRangeSection"),
+  customRangeTitle: document.getElementById("customRangeTitle"),
+  customRangeHint: document.getElementById("customRangeHint"),
+  customRangeStartLabel: document.getElementById("customRangeStartLabel"),
+  customRangeEndLabel: document.getElementById("customRangeEndLabel"),
+  customRangeStartInput: document.getElementById("customRangeStart"),
+  customRangeEndInput: document.getElementById("customRangeEnd"),
   recognitionEyebrow: document.getElementById("recognitionEyebrow"),
   recognitionTitle: document.getElementById("recognitionTitle"),
   feature1: document.getElementById("feature1"),
@@ -518,6 +511,7 @@ function boot() {
   applyLanguage(state.language, { updateRules: false });
   renderRules();
   bindEvents();
+  bindDocumentScopeEvents();
 }
 
 function bindEvents() {
@@ -669,87 +663,6 @@ function bindEvents() {
     }
   });
 
-  elements.pageRangeToggleCheckbox?.addEventListener("change", (event) => {
-    const input = event.target;
-    if (!(input instanceof HTMLInputElement)) {
-      return;
-    }
-
-    state.enablePageRange = input.checked;
-    window.localStorage.setItem("wnh-enable-page-range", String(input.checked));
-    syncPageRangeInputs();
-
-    if (!state.enablePageRange) {
-      if (state.file && state.preview) {
-        void analyzeDocument();
-        return;
-      }
-
-      if (state.file) {
-        setStatus(state.documentPageCountState === "pending" ? "readingDocumentInfo" : "fileReady");
-      }
-      return;
-    }
-
-    try {
-      normalizePageRange(state.pageRangeStart, state.pageRangeEnd, state.documentPageCount);
-    } catch (error) {
-      clearPreviewState();
-      setStatus(error instanceof Error ? error.message : t("invalidPageRange"), "warn", { isRaw: true });
-      return;
-    }
-
-    if (state.file && state.preview) {
-      void analyzeDocument();
-      return;
-    }
-
-    if (state.file) {
-      setStatus(state.documentPageCountState === "pending" ? "readingDocumentInfo" : "fileReady");
-    }
-  });
-
-  [elements.pageRangeStartInput, elements.pageRangeEndInput].forEach((input) => {
-    input?.addEventListener("change", (event) => {
-      const target = event.target;
-      if (!(target instanceof HTMLInputElement)) {
-        return;
-      }
-
-      if (target === elements.pageRangeStartInput) {
-        state.pageRangeStart = target.value.trim();
-        window.localStorage.setItem("wnh-page-range-start", state.pageRangeStart);
-      } else {
-        state.pageRangeEnd = target.value.trim();
-        window.localStorage.setItem("wnh-page-range-end", state.pageRangeEnd);
-      }
-
-      syncPageRangeInputs();
-
-      if (!state.enablePageRange) {
-        return;
-      }
-
-      try {
-        normalizePageRange(state.pageRangeStart, state.pageRangeEnd, state.documentPageCount);
-      } catch (error) {
-        clearPreviewState();
-        setStatus(error instanceof Error ? error.message : t("invalidPageRange"), "warn", { isRaw: true });
-        return;
-      }
-
-      if (state.file && state.preview) {
-        void analyzeDocument();
-        return;
-      }
-
-      clearPreviewState();
-      if (state.file) {
-        setStatus(state.documentPageCountState === "pending" ? "readingDocumentInfo" : "fileReady");
-      }
-    });
-  });
-
   ["dragenter", "dragover"].forEach((eventName) => {
     elements.uploadZone?.addEventListener(eventName, (event) => {
       event.preventDefault();
@@ -770,6 +683,60 @@ function bindEvents() {
   });
 }
 
+function bindDocumentScopeEvents() {
+  elements.customRangeToggleCheckbox?.addEventListener("change", (event) => {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement)) {
+      return;
+    }
+
+    state.enableCustomRange = input.checked;
+    window.localStorage.setItem("wnh-enable-custom-range", String(input.checked));
+    syncCustomRangeInputs();
+
+    if (state.file && state.preview) {
+      void analyzeDocument();
+    } else {
+      clearPreviewState();
+      if (state.file) {
+        setStatus(state.documentPageCountState === "pending" ? "readingDocumentInfo" : "fileReady");
+      }
+    }
+  });
+
+  [elements.customRangeStartInput, elements.customRangeEndInput].forEach((input) => {
+    input?.addEventListener("change", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLTextAreaElement)) {
+        return;
+      }
+
+      if (target === elements.customRangeStartInput) {
+        state.customRangeStart = target.value;
+        window.localStorage.setItem("wnh-custom-range-start", state.customRangeStart);
+      } else {
+        state.customRangeEnd = target.value;
+        window.localStorage.setItem("wnh-custom-range-end", state.customRangeEnd);
+      }
+
+      if (state.enableCustomRange && state.file && state.preview) {
+        void analyzeDocument();
+      }
+    });
+
+    input?.addEventListener("input", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLTextAreaElement)) {
+        return;
+      }
+      clearPreviewState();
+      if (state.file) {
+        setStatus(state.documentPageCountState === "pending" ? "readingDocumentInfo" : "fileReady");
+      }
+    });
+  });
+}
+
 function loadInitialLanguage() {
   return window.localStorage.getItem("wnh-language") === "en" ? "en" : "zh";
 }
@@ -778,13 +745,12 @@ function loadInitialTextHeadingInference() {
   return window.localStorage.getItem("wnh-text-heading-inference") === "true";
 }
 
-function loadInitialPageRangeEnabled() {
-  return window.localStorage.getItem("wnh-enable-page-range") === "true";
+function loadInitialCustomRangeEnabled() {
+  return window.localStorage.getItem("wnh-enable-custom-range") === "true";
 }
 
-function loadInitialPageRangeValue(key) {
-  const value = window.localStorage.getItem(key);
-  return /^\d+$/u.test(value ?? "") ? value : "";
+function loadInitialCustomRangeValue(key) {
+  return window.localStorage.getItem(key) ?? "";
 }
 
 function t(key, vars = {}) {
@@ -795,32 +761,18 @@ function t(key, vars = {}) {
   );
 }
 
-function syncPageRangeInputs() {
-  elements.pageRangeSection?.classList.toggle("is-hidden", !state.enablePageRange);
-  if (elements.pageRangeToggleCheckbox) {
-    elements.pageRangeToggleCheckbox.checked = state.enablePageRange;
+function syncCustomRangeInputs() {
+  elements.customRangeSection?.classList.toggle("is-hidden", !state.enableCustomRange);
+  if (elements.customRangeToggleCheckbox) {
+    elements.customRangeToggleCheckbox.checked = state.enableCustomRange;
   }
-
-  if (elements.pageRangeStartInput) {
-    elements.pageRangeStartInput.value = state.pageRangeStart;
-    elements.pageRangeStartInput.placeholder = t("pageRangeStartPlaceholder");
-    elements.pageRangeStartInput.disabled = !state.enablePageRange;
-    if (Number.isInteger(state.documentPageCount)) {
-      elements.pageRangeStartInput.max = String(state.documentPageCount);
-    } else {
-      elements.pageRangeStartInput.removeAttribute("max");
-    }
+  if (elements.customRangeStartInput) {
+    elements.customRangeStartInput.value = state.customRangeStart;
+    elements.customRangeStartInput.placeholder = t("customRangeStartPlaceholder");
   }
-
-  if (elements.pageRangeEndInput) {
-    elements.pageRangeEndInput.value = state.pageRangeEnd;
-    elements.pageRangeEndInput.placeholder = t("pageRangeEndPlaceholder");
-    elements.pageRangeEndInput.disabled = !state.enablePageRange;
-    if (Number.isInteger(state.documentPageCount)) {
-      elements.pageRangeEndInput.max = String(state.documentPageCount);
-    } else {
-      elements.pageRangeEndInput.removeAttribute("max");
-    }
+  if (elements.customRangeEndInput) {
+    elements.customRangeEndInput.value = state.customRangeEnd;
+    elements.customRangeEndInput.placeholder = t("customRangeEndPlaceholder");
   }
 }
 
@@ -925,16 +877,18 @@ function applyLanguage(language, { updateRules }) {
   setText(elements.scanDescription, t("scanDescription"));
   setText(elements.headingInferenceLabel, t("headingInferenceLabel"));
   setText(elements.headingInferenceHint, t("headingInferenceHint"));
-  setText(elements.pageRangeToggleLabel, t("pageRangeToggleLabel"));
-  setText(elements.pageRangeToggleHint, t("pageRangeToggleHint"));
-  setText(elements.pageRangeTitle, t("pageRangeTitle"));
-  setText(elements.pageRangeHint, t("pageRangeHint"));
-  setText(elements.pageRangeStartLabel, t("pageRangeStartLabel"));
-  setText(elements.pageRangeEndLabel, t("pageRangeEndLabel"));
   if (elements.headingInferenceCheckbox) {
     elements.headingInferenceCheckbox.checked = state.allowTextHeadingInference;
   }
-  syncPageRangeInputs();
+  syncCustomRangeInputs();
+
+  setText(elements.customRangeToggleLabel, t("customRangeToggleLabel"));
+  setText(elements.customRangeToggleHint, t("customRangeToggleHint"));
+  setText(elements.customRangeTitle, t("customRangeTitle"));
+  setText(elements.customRangeHint, t("customRangeHint"));
+  setText(elements.customRangeStartLabel, t("customRangeStartLabel"));
+  setText(elements.customRangeEndLabel, t("customRangeEndLabel"));
+
   setText(elements.analyzeButtonText, t("analyzeButtonText"));
   setText(elements.downloadButtonText, t("downloadButtonText"));
   setText(elements.recognitionEyebrow, t("recognitionEyebrow"));
@@ -1184,7 +1138,6 @@ function handleFileSelection(file) {
   renderDocumentScope();
   renderFileMeta();
   renderDocumentPageInfo();
-  syncPageRangeInputs();
   setStatus("readingDocumentInfo");
   void inspectUploadedDocument(file);
 }
@@ -1207,15 +1160,11 @@ async function inspectUploadedDocument(file) {
     state.documentPageCount = Number.isInteger(pageCount) && pageCount > 0 ? pageCount : null;
     state.documentPageCountState = state.documentPageCount ? "ready" : "unknown";
     renderDocumentPageInfo();
-    syncPageRangeInputs();
 
     try {
-      if (state.enablePageRange) {
-        normalizePageRange(state.pageRangeStart, state.pageRangeEnd, state.documentPageCount);
-      }
       setStatus("fileReady");
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : t("invalidPageRange"), "warn", { isRaw: true });
+      console.warn("Failed setting file ready status", error);
     }
   } catch (error) {
     console.warn("Failed to inspect uploaded document", error);
@@ -1226,7 +1175,6 @@ async function inspectUploadedDocument(file) {
     state.documentPageCount = null;
     state.documentPageCountState = "unknown";
     renderDocumentPageInfo();
-    syncPageRangeInputs();
     setStatus("fileReady");
   }
 }
@@ -1465,15 +1413,9 @@ async function analyzeDocument() {
     return;
   }
 
-  let pageRange;
-  try {
-    pageRange = state.enablePageRange
-      ? normalizePageRange(state.pageRangeStart, state.pageRangeEnd, state.documentPageCount)
-      : null;
-  } catch (error) {
-    setStatus(error instanceof Error ? error.message : t("invalidPageRange"), "warn", { isRaw: true });
-    return;
-  }
+  const customRangeInfo = state.enableCustomRange
+    ? { startMarker: state.customRangeStart, endMarker: state.customRangeEnd }
+    : null;
 
   if (elements.analyzeButton) {
     elements.analyzeButton.disabled = true;
@@ -1487,7 +1429,7 @@ async function analyzeDocument() {
     const preview = await processDocx(await state.file.arrayBuffer(), compiledRules, {
       headingExclusions: state.headingExclusions,
       allowTextHeadingInference: state.allowTextHeadingInference,
-      pageRange,
+      customRange: customRangeInfo,
       documentPageCount: state.documentPageCount,
     });
     state.preview = preview;
@@ -1497,7 +1439,8 @@ async function analyzeDocument() {
     }
 
     const headingMessage =
-      buildHeadingSummary(preview.headingCounts, compiledRules) + buildPageRangeSummary(preview.pageInfo);
+      buildHeadingSummary(preview.headingCounts, compiledRules) +
+      (preview.customRange ? "；" + buildCustomRangeSummary(preview.customRange) : "");
 
     setStatus("processedStatus", "info", {
       captions: preview.captions.length,
@@ -1516,7 +1459,7 @@ async function analyzeDocument() {
 
 async function processDocx(arrayBuffer, compiledRules, options = {}) {
   const zip = await JSZip.loadAsync(arrayBuffer);
-  const pageRange = options.pageRange ?? null;
+  const customRangeInfo = options.customRange ?? null;
   const stylesInfo = await parseStylesInfo(zip);
   const partNames = Object.keys(zip.files)
     .filter(
@@ -1554,15 +1497,14 @@ async function processDocx(arrayBuffer, compiledRules, options = {}) {
     throw new Error(t("noProcessableXmlError"));
   }
 
+  const customRange = customRangeInfo
+    ? resolveCustomRange(docs, customRangeInfo.startMarker, customRangeInfo.endMarker)
+    : null;
+
   const pageTracking = assignDocumentPageNumbers(docs);
   const reportedPageCount = Number.isInteger(options.documentPageCount) ? options.documentPageCount : null;
-  if (pageRange && pageTracking.detectedPageBreaks === 0 && (reportedPageCount ?? 1) > 1) {
-    throw new Error(t("pageRangeUnavailable"));
-  }
 
   const pageInfo = {
-    applied: Boolean(pageRange),
-    range: pageRange,
     detectedPageBreaks: pageTracking.detectedPageBreaks,
     estimatedPageCount: pageTracking.estimatedPageCount,
     reportedPageCount,
@@ -1572,7 +1514,6 @@ async function processDocx(arrayBuffer, compiledRules, options = {}) {
   const headingInfo = buildHeadingContexts(docs, stylesInfo, {
     ignoredHeadingOrders: options.headingExclusions,
     allowTextHeadingInference: options.allowTextHeadingInference,
-    pageRange,
   });
   const candidates = [];
 
@@ -1593,10 +1534,7 @@ async function processDocx(arrayBuffer, compiledRules, options = {}) {
           pageNumber,
         };
 
-        if (pageRange && !isCandidateWithinPageRange(pageNumber, pageRange)) {
-          if (pageNumber === null) {
-            pageInfo.skippedUnmappedCandidates += 1;
-          }
+        if (customRange && !isCandidateWithinCustomRange(paragraph.order, customRange)) {
           continue;
         }
 
@@ -1676,6 +1614,7 @@ async function processDocx(arrayBuffer, compiledRules, options = {}) {
     headingGroups: headingInfo.groups,
     usedHeadingPlaceholders: getUsedHeadingPlaceholders(compiledRules),
     pageInfo,
+    customRange: options.customRangeInfo,
     warnings: buildWarnings(captions, references, captionMap, headingInfo, compiledRules, pageInfo),
   };
 }
@@ -1961,7 +1900,6 @@ function detectHeadingLevelFromStyleLabel(label) {
 function buildHeadingContexts(docs, stylesInfo, options = {}) {
   const ignoredHeadingOrders = options.ignoredHeadingOrders ?? new Set();
   const allowTextHeadingInference = options.allowTextHeadingInference === true;
-  const pageRange = options.pageRange ?? null;
   const counts = {};
   const groups = {};
   const currentHeadings = new Map();
@@ -1974,9 +1912,8 @@ function buildHeadingContexts(docs, stylesInfo, options = {}) {
         continue;
       }
 
-      const paragraphInRange = isParagraphWithinPageRange(paragraph, pageRange);
       const headingLevel =
-        paragraphInRange && !ignoredHeadingOrders.has(paragraph.order)
+        !ignoredHeadingOrders.has(paragraph.order)
           ? getParagraphHeadingLevel(paragraph, stylesInfo, allowTextHeadingInference)
           : null;
       if (headingLevel) {
@@ -2157,45 +2094,57 @@ function resolveCandidatePageNumber(paragraph, offset) {
   return pageNumber;
 }
 
-function isCandidateWithinPageRange(pageNumber, pageRange) {
-  if (!pageRange) {
-    return true;
+
+
+function resolveCustomRange(docs, startMarker, endMarker) {
+  if (!startMarker && !endMarker) {
+    return null;
   }
 
-  if (!Number.isInteger(pageNumber)) {
-    return false;
+  const findOrder = (marker) => {
+    if (!marker) return null;
+    const normalizedMarker = collapseWhitespace(marker).toLowerCase();
+    const matches = [];
+    for (const doc of docs) {
+      if (doc.partName !== "word/document.xml") continue;
+      for (const paragraph of doc.paragraphs) {
+        if (collapseWhitespace(paragraph.fullText).toLowerCase().includes(normalizedMarker)) {
+          matches.push(paragraph.order);
+        }
+      }
+    }
+    if (matches.length === 1) return matches[0];
+    if (matches.length > 1) throw new Error(t("customRangeMarkerAmbiguous", { text: marker }));
+    return null;
+  };
+
+  const startOrder = findOrder(startMarker);
+  const endOrder = findOrder(endMarker);
+
+  if (startMarker && startOrder === null) {
+    throw new Error(t("customRangeStartNotFound"));
+  }
+  if (endMarker && endOrder === null) {
+    throw new Error(t("customRangeEndNotFound"));
   }
 
-  if (pageRange.start !== null && pageNumber < pageRange.start) {
-    return false;
+  if (startOrder !== null && endOrder !== null && startOrder > endOrder) {
+    throw new Error(t("customRangeMarkersInverted"));
   }
 
-  if (pageRange.end !== null && pageNumber > pageRange.end) {
-    return false;
-  }
-
-  return true;
+  return { start: startOrder, end: endOrder };
 }
 
-function isParagraphWithinPageRange(paragraph, pageRange) {
-  if (!pageRange) {
+function isCandidateWithinCustomRange(candidateOrder, customRange) {
+  if (!customRange) {
     return true;
   }
 
-  if (!Number.isInteger(paragraph.pageNumber)) {
+  if (customRange.start !== null && candidateOrder < customRange.start) {
     return false;
   }
 
-  const paragraphStartPage = paragraph.pageNumber;
-  const paragraphEndPage = paragraph.pageBreaks.length
-    ? paragraph.pageBreaks[paragraph.pageBreaks.length - 1].pageNumber ?? paragraphStartPage
-    : paragraphStartPage;
-
-  if (pageRange.start !== null && paragraphEndPage < pageRange.start) {
-    return false;
-  }
-
-  if (pageRange.end !== null && paragraphStartPage > pageRange.end) {
+  if (customRange.end !== null && candidateOrder > customRange.end) {
     return false;
   }
 
@@ -2523,14 +2472,6 @@ function buildWarnings(captions, references, captionMap, headingInfo, compiledRu
     warnings.push(t("noReferenceFound"));
   }
 
-  if (pageInfo?.applied && pageInfo.detectedPageBreaks === 0) {
-    warnings.push(t("pageRangeWarningNoMarkers"));
-  }
-
-  if (pageInfo?.applied && pageInfo.skippedUnmappedCandidates > 0) {
-    warnings.push(t("pageRangeWarningUnmapped", { count: pageInfo.skippedUnmappedCandidates }));
-  }
-
   return warnings;
 }
 
@@ -2563,29 +2504,18 @@ function buildHeadingSummary(headingCounts, compiledRules) {
     : `；检测到标题层级计数：${parts.join("、")}`;
 }
 
-function buildPageRangeSummary(pageInfo) {
-  if (!pageInfo?.applied || !pageInfo.range) {
+
+
+function buildCustomRangeSummary(customRange) {
+  if (!customRange) {
     return "";
   }
 
-  const { start, end } = pageInfo.range;
-  if (state.language === "en") {
-    if (start !== null && end !== null) {
-      return `, page range ${start}-${end}`;
-    }
-    if (start !== null) {
-      return `, pages from ${start}`;
-    }
-    return `, pages through ${end}`;
-  }
+  const { start, end } = customRange;
+  const startStr = start !== null ? start : "?";
+  const endStr = end !== null ? end : "?";
 
-  if (start !== null && end !== null) {
-    return `，页码范围 ${start}-${end}`;
-  }
-  if (start !== null) {
-    return `，从第 ${start} 页开始`;
-  }
-  return `，到第 ${end} 页为止`;
+  return t("customRangeLabel") + "：" + t("customRangeValue", { start: startStr, end: endStr });
 }
 
 function renderPreview(preview) {
@@ -2653,14 +2583,14 @@ function renderHeadingReview(groups = {}, usedPlaceholders = []) {
 
       const rows = items.length
         ? items
-            .map(
-              (item) => `
+          .map(
+            (item) => `
                 <li class="heading-review-item">
                   <div class="heading-review-item__main">
                     <span class="heading-review-item__index">${escapeHtml(String(item.sequence))}</span>
                     <span class="heading-review-item__text">${escapeHtml(
-                      normalizePreviewWhitespace(item.text) || t("emptyParagraph"),
-                    )}</span>
+              normalizePreviewWhitespace(item.text) || t("emptyParagraph"),
+            )}</span>
                   </div>
                   <button
                     class="button button--ghost heading-review-item__remove"
@@ -2672,8 +2602,8 @@ function renderHeadingReview(groups = {}, usedPlaceholders = []) {
                   </button>
                 </li>
               `,
-            )
-            .join("")
+          )
+          .join("")
         : `<div class="heading-review-empty">${escapeHtml(t("headingReviewEmpty"))}</div>`;
 
       return `
@@ -2682,15 +2612,15 @@ function renderHeadingReview(groups = {}, usedPlaceholders = []) {
             <div class="heading-review-group__title-row">
               <span class="pattern-chip pattern-chip--heading" style="${visual.chipStyle}">${escapeHtml(`{${placeholder}}`)}</span>
               <h4 class="heading-review-group__title">${escapeHtml(
-                t("headingReviewGroupTitle", {
-                  placeholder: `{${placeholder}}`,
-                  level: meta?.level ?? "?",
-                }),
-              )}</h4>
+        t("headingReviewGroupTitle", {
+          placeholder: `{${placeholder}}`,
+          level: meta?.level ?? "?",
+        }),
+      )}</h4>
             </div>
             <span class="heading-review-group__count">${escapeHtml(
-              t("headingReviewCount", { count: items.length }),
-            )}</span>
+        t("headingReviewCount", { count: items.length }),
+      )}</span>
           </div>
           ${items.length ? `<ul class="heading-review-group__list">${rows}</ul>` : rows}
         </article>
@@ -2747,26 +2677,6 @@ function parseOptionalPositiveInteger(value) {
 
   const parsed = Number.parseInt(normalized, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : Number.NaN;
-}
-
-function normalizePageRange(startValue, endValue, maxPages = null) {
-  const start = parseOptionalPositiveInteger(startValue);
-  const end = parseOptionalPositiveInteger(endValue);
-
-  const exceedsMax =
-    Number.isInteger(maxPages) &&
-    ((start !== null && start > maxPages) || (end !== null && end > maxPages));
-
-  if (
-    Number.isNaN(start) ||
-    Number.isNaN(end) ||
-    exceedsMax ||
-    (start !== null && end !== null && start > end)
-  ) {
-    throw new Error(t("invalidPageRange"));
-  }
-
-  return start === null && end === null ? null : { start, end };
 }
 
 function makeMappingKey(ruleId, originalText) {
