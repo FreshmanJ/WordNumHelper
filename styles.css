@@ -173,11 +173,42 @@ code {
   cursor: pointer;
   appearance: none;
   text-decoration: none;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .friend-link__trigger--placeholder {
   cursor: default;
   opacity: 0.7;
+}
+
+.friend-link__trigger:hover:not(.friend-link__trigger--placeholder) {
+  background: var(--bg-strong);
+  color: var(--accent);
+  border-color: rgba(15, 118, 110, 0.25);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(15, 118, 110, 0.08);
+}
+
+.github-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.github-link svg {
+  fill: currentColor;
+  display: inline-block;
+  vertical-align: middle;
+  transition: transform 220ms ease;
+}
+
+.github-link:hover svg {
+  transform: rotate(8deg) scale(1.08);
 }
 
 .friend-link__popover {
