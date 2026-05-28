@@ -8,6 +8,10 @@ const RULE_ACCENT_PALETTE = [
 const FIELD_INSTRUCTION_PREFIX =
   /^(?:=|ask|author|compare|createdate|date|docproperty|filename|form(?:checkbox|dropdown|text)|gotobutton|hyperlink|if|include(?:picture|text)|macrobutton|mergefield|noteref|numpages|page|pageref|quote|ref|seq|set|styleref|symbol|time|title|toc|xe|ta)\b/i;
 
+const WORD_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+const WNH_DOCX_MIME_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+const REVISION_AUTHOR = "WordNumHelper";
+
 
 const TRANSLATIONS = {
   zh: {
@@ -75,7 +79,8 @@ const TRANSLATIONS = {
     documentPagesValuePending: "上传后自动读取",
     documentPagesValueUnknown: "暂时无法判定",
     analyzeButtonText: "扫描并预览",
-    downloadButtonText: "下载修正后的 DOCX",
+    downloadButtonText: "下载无修订版 DOCX",
+    downloadRevisionButtonText: "下载修订版 DOCX",
     recognitionEyebrow: "识别逻辑",
     recognitionTitle: "如何区分标题与正文引用",
     feature1: "段首且边界更像标题的内容，会优先视为真正的图表标题。",
@@ -150,6 +155,7 @@ const TRANSLATIONS = {
     pageRangeWarningUnmapped:
       "页码范围过滤只作用于主文档正文。{count} 处来自页眉、页脚、注释或批注的命中项已被跳过。",
     outputFileSuffix: "-renumbered",
+    outputFileRevisionSuffix: "-renumbered-revisions",
   },
   en: {
     htmlLang: "en",
@@ -216,7 +222,8 @@ const TRANSLATIONS = {
     documentPagesValuePending: "Read after upload",
     documentPagesValueUnknown: "Unavailable",
     analyzeButtonText: "Scan and Preview",
-    downloadButtonText: "Download Corrected DOCX",
+    downloadButtonText: "Download Clean DOCX",
+    downloadRevisionButtonText: "Download Review DOCX",
     recognitionEyebrow: "Detection logic",
     recognitionTitle: "How captions and references differ",
     feature1: "Paragraph-start content with caption-like boundaries is treated as a real caption first.",
@@ -292,6 +299,7 @@ const TRANSLATIONS = {
     pageRangeWarningUnmapped:
       "Page-range filtering applies only to the main document body. {count} matches from headers, footers, notes, or comments were skipped.",
     outputFileSuffix: "-renumbered",
+    outputFileRevisionSuffix: "-renumbered-revisions",
   },
 };
 
@@ -417,6 +425,8 @@ const elements = {
   analyzeButtonText: document.getElementById("analyzeButtonText"),
   downloadButton: document.getElementById("downloadButton"),
   downloadButtonText: document.getElementById("downloadButtonText"),
+  downloadRevisionButton: document.getElementById("downloadRevisionButton"),
+  downloadRevisionButtonText: document.getElementById("downloadRevisionButtonText"),
   langZhButton: document.getElementById("langZhButton"),
   langEnButton: document.getElementById("langEnButton"),
   statusBox: document.getElementById("statusBox"),
@@ -631,7 +641,17 @@ function bindEvents() {
     if (!state.preview?.blob) {
       return;
     }
-    downloadProcessedDocument(state.preview.blob, state.file?.name ?? "renumbered.docx");
+    downloadProcessedDocument(state.preview.blob, state.file?.name ?? "renumbered.docx", "outputFileSuffix");
+  });
+  elements.downloadRevisionButton?.addEventListener("click", () => {
+    if (!state.preview?.revisionBlob) {
+      return;
+    }
+    downloadProcessedDocument(
+      state.preview.revisionBlob,
+      state.file?.name ?? "renumbered.docx",
+      "outputFileRevisionSuffix",
+    );
   });
   elements.resetHeadingFiltersButton?.addEventListener("click", () => void resetHeadingFilters());
   elements.headingReviewList?.addEventListener("click", (event) => {
@@ -937,6 +957,7 @@ function applyLanguage(language, { updateRules }) {
   syncPageRangeInputs();
   setText(elements.analyzeButtonText, t("analyzeButtonText"));
   setText(elements.downloadButtonText, t("downloadButtonText"));
+  setText(elements.downloadRevisionButtonText, t("downloadRevisionButtonText"));
   setText(elements.recognitionEyebrow, t("recognitionEyebrow"));
   setText(elements.recognitionTitle, t("recognitionTitle"));
   setText(elements.feature1, t("feature1"));
@@ -1442,6 +1463,9 @@ function clearPreviewState() {
   if (elements.downloadButton) {
     elements.downloadButton.disabled = true;
   }
+  if (elements.downloadRevisionButton) {
+    elements.downloadRevisionButton.disabled = true;
+  }
   setText(elements.captionsCount, "0");
   setText(elements.referencesCount, "0");
   setText(elements.warningsCount, "0");
@@ -1489,6 +1513,9 @@ async function analyzeDocument() {
   if (elements.downloadButton) {
     elements.downloadButton.disabled = true;
   }
+  if (elements.downloadRevisionButton) {
+    elements.downloadRevisionButton.disabled = true;
+  }
   setStatus("scanning");
 
   try {
@@ -1502,6 +1529,9 @@ async function analyzeDocument() {
     renderPreview(preview);
     if (elements.downloadButton) {
       elements.downloadButton.disabled = false;
+    }
+    if (elements.downloadRevisionButton) {
+      elements.downloadRevisionButton.disabled = false;
     }
 
     const headingMessage =
@@ -1657,11 +1687,13 @@ async function processDocx(arrayBuffer, compiledRules, options = {}) {
   }
 
   const replacementsByParagraph = new Map();
-  for (const item of [...captions, ...references]) {
+  for (const item of [...captions, ...references].filter((entry) => entry.newText !== entry.text)) {
     const replacements = replacementsByParagraph.get(item.paragraphKey) ?? [];
     replacements.push({ start: item.start, end: item.end, newText: item.newText });
     replacementsByParagraph.set(item.paragraphKey, replacements);
   }
+
+  const revisionBlob = await generateRevisionBlob(arrayBuffer, partNames, replacementsByParagraph);
 
   for (const doc of docs) {
     for (const paragraph of doc.paragraphs) {
@@ -1676,8 +1708,9 @@ async function processDocx(arrayBuffer, compiledRules, options = {}) {
   return {
     blob: await zip.generateAsync({
       type: "blob",
-      mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      mimeType: WNH_DOCX_MIME_TYPE,
     }),
+    revisionBlob,
     captions,
     references,
     headingCounts: headingInfo.counts,
@@ -1686,6 +1719,49 @@ async function processDocx(arrayBuffer, compiledRules, options = {}) {
     pageInfo,
     warnings: buildWarnings(captions, references, captionMap, headingInfo, compiledRules, pageInfo),
   };
+}
+
+async function generateRevisionBlob(arrayBuffer, partNames, replacementsByParagraph) {
+  const zip = await JSZip.loadAsync(arrayBuffer);
+  const revisionContext = {
+    author: REVISION_AUTHOR,
+    date: new Date().toISOString(),
+    nextId: 1,
+  };
+
+  for (const partName of partNames) {
+    const file = zip.file(partName);
+    if (!file) {
+      continue;
+    }
+
+    const xmlText = await file.async("text");
+    if (!xmlText.includes("<w:p")) {
+      continue;
+    }
+
+    const xmlDoc = new DOMParser().parseFromString(xmlText, "application/xml");
+    if (xmlDoc.querySelector("parsererror")) {
+      throw new Error(t("xmlParseError", { partName }));
+    }
+
+    const paragraphs = collectParagraphs(xmlDoc, partName, 0);
+    for (const paragraph of paragraphs) {
+      const replacements = replacementsByParagraph.get(paragraph.key);
+      if (replacements?.length) {
+        applyTrackedReplacementsToParagraph(paragraph, replacements, revisionContext);
+      }
+    }
+
+    zip.file(partName, new XMLSerializer().serializeToString(xmlDoc));
+  }
+
+  await enableRevisionDisplay(zip);
+
+  return zip.generateAsync({
+    type: "blob",
+    mimeType: WNH_DOCX_MIME_TYPE,
+  });
 }
 
 function comparePartNames(left, right) {
@@ -2483,6 +2559,144 @@ function applyReplacementsToParagraph(paragraph, replacements) {
   }
 }
 
+function applyTrackedReplacementsToParagraph(paragraph, replacements, revisionContext) {
+  const sortedReplacements = [...replacements].sort((left, right) => left.start - right.start);
+  const replacedRuns = new Set();
+
+  for (const segment of paragraph.textSegments) {
+    const relevantReplacements = sortedReplacements.filter(
+      (replacement) => segment.start < replacement.end && segment.end > replacement.start,
+    );
+    if (!relevantReplacements.length) {
+      continue;
+    }
+
+    const sourceRun = findAncestorByLocalName(segment.node, "r");
+    if (!sourceRun?.parentNode || replacedRuns.has(sourceRun)) {
+      continue;
+    }
+
+    const parent = sourceRun.parentNode;
+    const newNodes = buildTrackedReplacementNodesForSegment(
+      sourceRun,
+      segment,
+      relevantReplacements,
+      revisionContext,
+    );
+
+    for (const node of newNodes) {
+      parent.insertBefore(node, sourceRun);
+    }
+    parent.removeChild(sourceRun);
+    replacedRuns.add(sourceRun);
+  }
+}
+
+function buildTrackedReplacementNodesForSegment(sourceRun, segment, replacements, revisionContext) {
+  const nodes = [];
+  let cursor = segment.start;
+
+  for (const replacement of replacements) {
+    const overlapStart = Math.max(replacement.start, segment.start);
+    const overlapEnd = Math.min(replacement.end, segment.end);
+
+    if (overlapStart > cursor) {
+      nodes.push(createTextRunLike(sourceRun, "t", segment.text.slice(cursor - segment.start, overlapStart - segment.start)));
+    }
+
+    const deletedText = segment.text.slice(overlapStart - segment.start, overlapEnd - segment.start);
+    if (deletedText) {
+      nodes.push(createRevisionWrapper("del", sourceRun, deletedText, revisionContext));
+    }
+
+    if (replacement.start >= segment.start && replacement.start < segment.end) {
+      nodes.push(createRevisionWrapper("ins", sourceRun, replacement.newText, revisionContext));
+    }
+
+    cursor = overlapEnd;
+  }
+
+  if (cursor < segment.end) {
+    nodes.push(createTextRunLike(sourceRun, "t", segment.text.slice(cursor - segment.start)));
+  }
+
+  return nodes;
+}
+
+function createRevisionWrapper(type, sourceRun, text, revisionContext) {
+  const doc = sourceRun.ownerDocument;
+  const wrapper = doc.createElementNS(WORD_NS, `w:${type}`);
+  wrapper.setAttributeNS(WORD_NS, "w:id", String(revisionContext.nextId++));
+  wrapper.setAttributeNS(WORD_NS, "w:author", revisionContext.author);
+  wrapper.setAttributeNS(WORD_NS, "w:date", revisionContext.date);
+  wrapper.appendChild(createTextRunLike(sourceRun, type === "del" ? "delText" : "t", text));
+  return wrapper;
+}
+
+function createTextRunLike(sourceRun, textElementName, text) {
+  const doc = sourceRun.ownerDocument;
+  const run = doc.createElementNS(WORD_NS, "w:r");
+  const properties = getDirectChild(sourceRun, "rPr");
+  if (properties) {
+    run.appendChild(properties.cloneNode(true));
+  }
+
+  const textNode = doc.createElementNS(WORD_NS, `w:${textElementName}`);
+  textNode.textContent = text;
+  if (/^\s|\s$/u.test(text)) {
+    textNode.setAttribute("xml:space", "preserve");
+  }
+  run.appendChild(textNode);
+  return run;
+}
+
+function findAncestorByLocalName(node, localName) {
+  let current = node?.parentNode ?? null;
+  while (current) {
+    if (current.nodeType === Node.ELEMENT_NODE && current.localName === localName) {
+      return current;
+    }
+    current = current.parentNode;
+  }
+  return null;
+}
+
+async function enableRevisionDisplay(zip) {
+  const settingsPath = "word/settings.xml";
+  const file = zip.file(settingsPath);
+  if (!file) {
+    return;
+  }
+
+  const xmlText = await file.async("text");
+  const xmlDoc = new DOMParser().parseFromString(xmlText, "application/xml");
+  if (xmlDoc.querySelector("parsererror")) {
+    return;
+  }
+
+  const settingsNode = xmlDoc.getElementsByTagNameNS("*", "settings")[0];
+  if (!settingsNode) {
+    return;
+  }
+
+  if (!settingsNode.getElementsByTagNameNS("*", "trackRevisions").length) {
+    settingsNode.appendChild(xmlDoc.createElementNS(WORD_NS, "w:trackRevisions"));
+  }
+
+  let revisionView = settingsNode.getElementsByTagNameNS("*", "revisionView")[0] ?? null;
+  if (!revisionView) {
+    revisionView = xmlDoc.createElementNS(WORD_NS, "w:revisionView");
+    settingsNode.appendChild(revisionView);
+  }
+
+  revisionView.setAttributeNS(WORD_NS, "w:markup", "1");
+  revisionView.setAttributeNS(WORD_NS, "w:insDel", "1");
+  revisionView.setAttributeNS(WORD_NS, "w:formatting", "1");
+  revisionView.setAttributeNS(WORD_NS, "w:comments", "1");
+
+  zip.file(settingsPath, new XMLSerializer().serializeToString(xmlDoc));
+}
+
 function writeSegment(segment) {
   segment.node.textContent = segment.text;
   if (/^\s|\s$/u.test(segment.text)) {
@@ -2708,14 +2922,14 @@ function renderHeadingReview(groups = {}, usedPlaceholders = []) {
     .join("");
 }
 
-function downloadProcessedDocument(blob, originalName) {
+function downloadProcessedDocument(blob, originalName, suffixKey = "outputFileSuffix") {
   const suffixIndex = originalName.toLowerCase().endsWith(".docx")
     ? originalName.length - 5
     : originalName.length;
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `${originalName.slice(0, suffixIndex)}${t("outputFileSuffix")}.docx`;
+  link.download = `${originalName.slice(0, suffixIndex)}${t(suffixKey)}.docx`;
   link.click();
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
